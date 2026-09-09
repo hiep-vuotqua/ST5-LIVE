@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import requests
 import pandas as pd
 
@@ -29,10 +30,11 @@ def in_trading_session(now):
 
     t = now.strftime("%H:%M")
 
-    morning = MORNING_START <= t <= MORNING_END
-    afternoon = AFTERNOON_START <= t <= AFTERNOON_END
-
-    return morning or afternoon
+    return (
+        MORNING_START <= t <= MORNING_END
+        or
+        AFTERNOON_START <= t <= AFTERNOON_END
+    )
 
 
 def load_state():
@@ -40,17 +42,27 @@ def load_state():
         return {}
 
     try:
-        with open(STATE_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
+        with open(
+            STATE_FILE,
+            "r",
+            encoding="utf-8"
+        ) as f:
+            state = json.load(f)
+
+        return state if isinstance(state, dict) else {}
+
+    except Exception as e:
+        print("⚠️ State lỗi:", e)
         return {}
 
 
 def save_state(state):
     os.makedirs("data", exist_ok=True)
 
+    temp_file = STATE_FILE + ".tmp"
+
     with open(
-        STATE_FILE,
+        temp_file,
         "w",
         encoding="utf-8"
     ) as f:
@@ -61,6 +73,11 @@ def save_state(state):
             indent=2
         )
 
+    os.replace(
+        temp_file,
+        STATE_FILE
+    )
+
 
 def send_telegram(message):
     token = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -70,7 +87,10 @@ def send_telegram(message):
         print("❌ THIẾU TELEGRAM SECRETS")
         return False
 
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    url = (
+        f"https://api.telegram.org/"
+        f"bot{token}/sendMessage"
+    )
 
     try:
         response = requests.post(
@@ -93,16 +113,13 @@ def send_telegram(message):
         )
 
     except Exception as e:
-        print("❌ Telegram exception:", e)
+        print(
+            "❌ Telegram exception:",
+            type(e).__name__,
+            e
+        )
 
     return False
-
-
-def send_test():
-    return send_telegram(
-        "🟢 ST5 LIVE TEST\n\n"
-        "GitHub Actions → Telegram hoạt động bình thường."
-    )
 
 
 def build_signal_message(
@@ -121,17 +138,26 @@ def build_signal_message(
         f"🚨 ST5 {action}\n\n"
         f"Mã: {ticker}\n"
         f"Giá: {price:.2f}\n"
-        f"Thời gian: {now.strftime('%d/%m/%Y %H:%M:%S')}\n\n"
-        f"Volume Ratio: {vr:.2f} {'✅' if vr > 1.5 else '❌'}\n"
-        f"ROC10: {roc:.2f}% {'✅' if roc > 4.0 else '❌'}\n"
-        f"MACD Hist: {macd:.4f} {'✅' if macd > 0 else '❌'}\n"
-        f"ADX14: {adx:.2f} {'✅' if adx > 30 else '❌'}\n\n"
-        f"ST5: 4/4 HỘI TỤ"
+        f"Thời gian: "
+        f"{now.strftime('%d/%m/%Y %H:%M:%S')}\n\n"
+        f"Volume Ratio: {vr:.2f} "
+        f"{'✅' if vr > 1.5 else '❌'}\n"
+        f"ROC10: {roc:.2f}% "
+        f"{'✅' if roc > 4.0 else '❌'}\n"
+        f"MACD Hist: {macd:.4f} "
+        f"{'✅' if macd > 0 else '❌'}\n"
+        f"ADX14: {adx:.2f} "
+        f"{'✅' if adx > 30 else '❌'}\n\n"
+        f"ST5 V1.4: 4/4 HỘI TỤ"
     )
 
 
-def process_ticker(ticker, state, now):
-    print(f"\n[{ticker}]")
+def process_ticker(
+    ticker,
+    state,
+    now
+):
+    print(f"\n========== {ticker} ==========")
 
     try:
         df = get_intraday_data(
@@ -141,7 +167,7 @@ def process_ticker(ticker, state, now):
 
         if df.empty:
             print("❌ Không có dữ liệu")
-            return
+            return False
 
         df = add_v14_indicators(df)
 
@@ -157,30 +183,32 @@ def process_ticker(ticker, state, now):
         )
 
         if df.empty:
-            print("⏳ Chưa đủ dữ liệu indicator")
-            return
+            print("⏳ Chưa đủ dữ liệu")
+            return False
 
         row = df.iloc[-1]
 
         signal = bool(row["Signal"])
-        old_position = bool(state.get(ticker, False))
+        old_position = bool(
+            state.get(ticker, False)
+        )
 
         print(
             f"Price={row['Close']:.2f} | "
             f"VR={row['VolumeRatio']:.2f} | "
             f"ROC={row['ROC10']:.2f} | "
             f"MACD={row['MACD_Hist']:.4f} | "
-            f"ADX={row['ADX14']:.2f} | "
-            f"Signal={signal}"
+            f"ADX={row['ADX14']:.2f}"
         )
 
-        # =========================
-        # BUY
-        # =========================
+        print(
+            f"Signal={signal} | "
+            f"State={old_position}"
+        )
 
         if signal and not old_position:
 
-            print("🟢 BUY")
+            print("🟢 BUY SIGNAL")
 
             message = build_signal_message(
                 ticker,
@@ -193,13 +221,11 @@ def process_ticker(ticker, state, now):
                 state[ticker] = True
                 save_state(state)
 
-        # =========================
-        # SELL
-        # =========================
+            return True
 
-        elif not signal and old_position:
+        if not signal and old_position:
 
-            print("🔴 SELL")
+            print("🔴 SELL SIGNAL")
 
             message = build_signal_message(
                 ticker,
@@ -212,20 +238,25 @@ def process_ticker(ticker, state, now):
                 state[ticker] = False
                 save_state(state)
 
-        else:
-            print("— Không có tín hiệu mới")
+            return True
+
+        print("— Không có tín hiệu mới")
+        return False
 
     except Exception as e:
+
         print(
             f"❌ {ticker}: "
             f"{type(e).__name__}: {e}"
         )
 
+        return False
+
 
 def main():
 
     print("=" * 70)
-    print("ST5 LIVE — INTRADAY 5M")
+    print("ST5 LIVE — V1.4 — INTRADAY 5M")
     print("=" * 70)
 
     now = now_vietnam()
@@ -235,23 +266,9 @@ def main():
         now.strftime("%Y-%m-%d %H:%M:%S")
     )
 
-    # =========================
-    # TELEGRAM TEST
-    # =========================
-
-    if os.getenv("TELEGRAM_TEST") == "1":
-        print("📨 TELEGRAM TEST")
-        send_test()
-        return
-
-    # =========================
-    # SESSION CHECK
-    # =========================
-
     if not in_trading_session(now):
 
         print("⏸ Ngoài giờ giao dịch")
-
         return
 
     print("🟢 ĐANG TRONG PHIÊN")
@@ -262,15 +279,31 @@ def main():
         f"CORE26: {len(CORE26)} mã"
     )
 
-    for ticker in CORE26:
+    signal_count = 0
 
-        process_ticker(
+    for index, ticker in enumerate(CORE26):
+
+        changed = process_ticker(
             ticker,
             state,
             now
         )
 
+        if changed:
+            signal_count += 1
+
+        # Giảm nguy cơ KBS rate-limit
+        if index < len(CORE26) - 1:
+            time.sleep(4)
+
+    save_state(state)
+
     print()
+    print(
+        f"📊 Signal changes: "
+        f"{signal_count}"
+    )
+
     print("=" * 70)
     print("ST5 LIVE HOÀN TẤT")
     print("=" * 70)
