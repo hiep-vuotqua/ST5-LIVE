@@ -3,10 +3,6 @@ from vnstock import Quote
 
 
 def get_intraday_data(ticker, days=5):
-    """
-    Lấy dữ liệu intraday hiện tại từ KBS.
-    Dùng để ST5 kiểm tra tín hiệu trong phiên.
-    """
 
     end = pd.Timestamp.now()
     start = end - pd.Timedelta(days=days)
@@ -41,7 +37,9 @@ def get_intraday_data(ticker, days=5):
         "volume": "Volume",
     }
 
-    df = df.rename(columns=rename)
+    df = df.rename(
+        columns=rename
+    )
 
     required = [
         "Date",
@@ -49,11 +47,12 @@ def get_intraday_data(ticker, days=5):
         "High",
         "Low",
         "Close",
-        "Volume"
+        "Volume",
     ]
 
     missing = [
-        col for col in required
+        col
+        for col in required
         if col not in df.columns
     ]
 
@@ -77,10 +76,14 @@ def get_intraday_data(ticker, days=5):
         subset=required
     )
 
-    df = df.sort_values("Date")
+    df = df.sort_values(
+        "Date"
+    )
 
     df = df.drop_duplicates(
         subset=["Date"]
     )
 
-    return df.reset_index(drop=True)
+    return df.reset_index(
+        drop=True
+    )
