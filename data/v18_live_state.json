@@ -1,5 +1,5 @@
 {
-  "VCI": true,
+  "VCI": false,
   "HDB": false,
-  "SHB": true
+  "SHB": false
 }
