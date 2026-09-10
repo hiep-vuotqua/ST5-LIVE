@@ -1,0 +1,76 @@
+name: ST5 V1.8 LIVE
+
+on:
+  schedule:
+
+    # 09:15 → 11:30 Vietnam
+    - cron: "15-30/5 2 * * 1-5"
+    - cron: "0-30/5 3 * * 1-5"
+
+    # 13:00 → 14:30 Vietnam
+    - cron: "0-30/5 6 * * 1-5"
+    - cron: "0-30/5 7 * * 1-5"
+
+  workflow_dispatch:
+
+
+permissions:
+  contents: write
+
+
+concurrency:
+  group: st5-live-v18
+  cancel-in-progress: false
+
+
+jobs:
+
+  v18-live:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+
+        with:
+          python-version: "3.11"
+
+
+      - name: Install dependencies
+        run: |
+
+          python -m pip install --upgrade pip
+
+          pip install -r requirements.txt
+
+
+      - name: Run ST5 V1.8 LIVE
+        env:
+
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+        run: |
+
+          PYTHONPATH=Scr python Scr/v18_main.py
+
+
+      - name: Save V1.8 state
+        run: |
+
+          git config user.name "github-actions[bot]"
+
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add data/v18_live_state.json
+
+          git diff --cached --quiet || git commit -m "Update ST5 V1.8 live state"
+
+          git push
