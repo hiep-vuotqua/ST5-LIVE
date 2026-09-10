@@ -38,10 +38,10 @@ MACD_HIST_MIN = -0.5
 ADX14_MIN = 15.0
 
 # =========================
-# MIN HOLD — 10 PHIÊN
+# MIN HOLD — 10 PHIÊN DAILY
 # =========================
 
-MIN_HOLD_BARS = 10
+MIN_HOLD_DAYS = 10
 
 # =========================
 # GIỜ GIAO DỊCH VIỆT NAM
@@ -53,4 +53,4 @@ MORNING_END = "11:30"
 AFTERNOON_START = "13:00"
 AFTERNOON_END = "14:30"
 
-TIMEZONE = "Asia/Ho_Chi_Minh" 
+TIMEZONE = "Asia/Ho_Chi_Minh"
