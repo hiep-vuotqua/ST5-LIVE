@@ -1,44 +1,36 @@
 import os
 import json
-import time
 import requests
 import pandas as pd
-from datetime import datetime, time as dtime
-from zoneinfo import ZoneInfo
+
+from config import (
+    CORE26,
+    MORNING_START,
+    MORNING_END,
+    AFTERNOON_START,
+    AFTERNOON_END,
+    TIMEZONE,
+)
 
 from data import get_intraday_data
-from indicators import add_v14_indicators
+from indicators import add_v14_indicators, v14_signal
 
 
-SYMBOLS = [
-    "THD", "VIB", "PVD", "SSI", "SHS", "KBC", "VCI", "HPG",
-    "VIX", "SIP", "PLX", "ABB", "API", "VPB", "CII", "AAS",
-    "CEO", "APG", "ACV", "KDC", "DXG", "VCG", "NKG", "EVF",
-    "DGC", "ADS",
-    "GMD", "NAF", "POW", "MBB", "SHB", "HDB", "DPM"
-]
-
-TZ = ZoneInfo("Asia/Ho_Chi_Minh")
-STATE_FILE = "data/v18_live_state.json"
-
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+STATE_FILE = "data/live_state.json"
 
 
-def now_vn():
-    return datetime.now(TZ)
+def now_vietnam():
+    return pd.Timestamp.now(tz=TIMEZONE)
 
 
-def in_trading_session():
-    now = now_vn()
-
+def in_trading_session(now):
     if now.weekday() >= 5:
         return False
 
-    t = now.time()
+    t = now.strftime("%H:%M")
 
-    morning = dtime(9, 15) <= t <= dtime(11, 30)
-    afternoon = dtime(13, 0) <= t <= dtime(14, 30)
+    morning = MORNING_START <= t <= MORNING_END
+    afternoon = AFTERNOON_START <= t <= AFTERNOON_END
 
     return morning or afternoon
 
@@ -55,221 +47,233 @@ def load_state():
 
 
 def save_state(state):
-    os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
+    os.makedirs("data", exist_ok=True)
 
-    tmp = STATE_FILE + ".tmp"
-
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, indent=2)
-
-    os.replace(tmp, STATE_FILE)
+    with open(
+        STATE_FILE,
+        "w",
+        encoding="utf-8"
+    ) as f:
+        json.dump(
+            state,
+            f,
+            ensure_ascii=False,
+            indent=2
+        )
 
 
 def send_telegram(message):
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        raise RuntimeError("Missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID")
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID")
 
-    url = (
-        f"https://api.telegram.org/bot"
-        f"{TELEGRAM_BOT_TOKEN}/sendMessage"
+    if not token or not chat_id:
+        print("❌ THIẾU TELEGRAM SECRETS")
+        return False
+
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+
+    try:
+        response = requests.post(
+            url,
+            json={
+                "chat_id": chat_id,
+                "text": message,
+            },
+            timeout=15,
+        )
+
+        if response.ok:
+            print("📨 Telegram: OK")
+            return True
+
+        print(
+            "❌ Telegram lỗi:",
+            response.status_code,
+            response.text
+        )
+
+    except Exception as e:
+        print("❌ Telegram exception:", e)
+
+    return False
+
+
+def send_test():
+    return send_telegram(
+        "🟢 ST5 LIVE TEST\n\n"
+        "GitHub Actions → Telegram hoạt động bình thường."
     )
 
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": message
-    }
 
-    r = requests.post(url, json=payload, timeout=20)
-    r.raise_for_status()
-
-    data = r.json()
-
-    if not data.get("ok"):
-        raise RuntimeError(f"Telegram error: {data}")
-
-
-def classify(symbol):
-    winner = {
-        "THD", "VIB", "PVD", "SSI", "SHS", "KBC", "VCI", "HPG",
-        "VIX", "SIP", "PLX", "ABB", "API", "VPB", "CII", "AAS"
-    }
-
-    strong = {
-        "CEO", "APG", "ACV", "KDC", "DXG",
-        "VCG", "NKG", "EVF", "DGC", "ADS"
-    }
-
-    watch = {
-        "GMD", "NAF", "POW", "MBB", "SHB", "HDB", "DPM"
-    }
-
-    if symbol in winner:
-        return "WINNER"
-    if symbol in strong:
-        return "STRONG"
-    if symbol in watch:
-        return "WATCH"
-
-    return "UNKNOWN"
-
-
-def calculate_v18(df):
-    df = df.copy()
-
-    df["MACD_HIST_SLOPE"] = df["MACD_Hist"].diff()
-
-    df["ENTRY"] = (
-        (df["ADX14"] > 40) &
-        (df["MACD_HIST_SLOPE"] > 0)
-    )
-
-    df["EXIT"] = (
-        (df["MACD_Hist"] <= 0) |
-        (df["ROC10"] <= 2) |
-        (df["ADX14"] <= 30)
-    )
-
-    return df
-
-
-def build_message(symbol, action, row):
-    reason = ""
-
-    if action == "BUY":
-        reason = "ADX14 > 40 + MACD HIST SLOPE > 0"
-
-    elif action == "SELL":
-        reasons = []
-
-        if row["MACD_Hist"] <= 0:
-            reasons.append("MACD_Hist <= 0")
-
-        if row["ROC10"] <= 2:
-            reasons.append("ROC10 <= 2")
-
-        if row["ADX14"] <= 30:
-            reasons.append("ADX14 <= 30")
-
-        reason = " OR ".join(reasons)
+def build_signal_message(
+    ticker,
+    action,
+    row,
+    now,
+):
+    price = float(row["Close"])
+    vr = float(row["VolumeRatio"])
+    roc = float(row["ROC10"])
+    macd = float(row["MACD_Hist"])
+    adx = float(row["ADX14"])
 
     return (
-        f"🚨 VRE SURVIVAL V1.8 — {action}\n"
-        f"Mã: {symbol}\n"
-        f"Nhóm: {classify(symbol)}\n"
-        f"Giá: {row['Close']:.2f}\n"
-        f"ADX14: {row['ADX14']:.2f}\n"
-        f"MACD Hist: {row['MACD_Hist']:.6f}\n"
-        f"MACD Hist Slope: {row['MACD_HIST_SLOPE']:.6f}\n"
-        f"ROC10: {row['ROC10']:.2f}%\n"
-        f"Lý do: {reason}\n"
-        f"Thời gian: {now_vn().strftime('%Y-%m-%d %H:%M:%S')}"
+        f"🚨 ST5 {action}\n\n"
+        f"Mã: {ticker}\n"
+        f"Giá: {price:.2f}\n"
+        f"Thời gian: {now.strftime('%d/%m/%Y %H:%M:%S')}\n\n"
+        f"Volume Ratio: {vr:.2f} {'✅' if vr > 1.5 else '❌'}\n"
+        f"ROC10: {roc:.2f}% {'✅' if roc > 4.0 else '❌'}\n"
+        f"MACD Hist: {macd:.4f} {'✅' if macd > 0 else '❌'}\n"
+        f"ADX14: {adx:.2f} {'✅' if adx > 30 else '❌'}\n\n"
+        f"ST5: 4/4 HỘI TỤ"
     )
 
 
-def process_symbol(symbol, state):
-    try:
-        df = get_intraday_data(symbol, days=5, retries=3)
+def process_ticker(ticker, state, now):
+    print(f"\n[{ticker}]")
 
-        if df is None or df.empty:
-            print(f"{symbol}: NO DATA")
+    try:
+        df = get_intraday_data(
+            ticker,
+            days=5
+        )
+
+        if df.empty:
+            print("❌ Không có dữ liệu")
             return
 
         df = add_v14_indicators(df)
 
-        df["MACD_HIST_SLOPE"] = df["MACD_Hist"].diff()
+        df["Signal"] = v14_signal(df)
 
         df = df.dropna(
             subset=[
-                "Close",
+                "VolumeRatio",
                 "ROC10",
                 "MACD_Hist",
-                "MACD_HIST_SLOPE",
-                "ADX14"
+                "ADX14",
             ]
         )
 
         if df.empty:
-            print(f"{symbol}: NO VALID ROW")
+            print("⏳ Chưa đủ dữ liệu indicator")
             return
 
         row = df.iloc[-1]
 
-        entry = bool(
-            row["ADX14"] > 40 and
-            row["MACD_HIST_SLOPE"] > 0
+        signal = bool(row["Signal"])
+        old_position = bool(state.get(ticker, False))
+
+        print(
+            f"Price={row['Close']:.2f} | "
+            f"VR={row['VolumeRatio']:.2f} | "
+            f"ROC={row['ROC10']:.2f} | "
+            f"MACD={row['MACD_Hist']:.4f} | "
+            f"ADX={row['ADX14']:.2f} | "
+            f"Signal={signal}"
         )
 
-        exit_signal = bool(
-            row["MACD_Hist"] <= 0 or
-            row["ROC10"] <= 2 or
-            row["ADX14"] <= 30
-        )
+        # =========================
+        # BUY
+        # =========================
 
-        old_position = bool(
-            state.get(symbol, {}).get("position", False)
-        )
+        if signal and not old_position:
 
-        action = None
+            print("🟢 BUY")
 
-        if old_position and exit_signal:
-            action = "SELL"
-
-        elif not old_position and entry:
-            action = "BUY"
-
-        if action:
-            message = build_message(symbol, action, row)
-
-            send_telegram(message)
-
-            state[symbol] = {
-                "position": action == "BUY",
-                "last_action": action,
-                "last_bar": str(row["Date"]),
-                "updated_at": now_vn().isoformat()
-            }
-
-            print(
-                f"{symbol}: {action} | "
-                f"Close={row['Close']:.2f} "
-                f"ADX={row['ADX14']:.2f} "
-                f"MACD={row['MACD_Hist']:.6f} "
-                f"SLOPE={row['MACD_HIST_SLOPE']:.6f} "
-                f"ROC={row['ROC10']:.2f}"
+            message = build_signal_message(
+                ticker,
+                "BUY",
+                row,
+                now
             )
+
+            if send_telegram(message):
+                state[ticker] = True
+                save_state(state)
+
+        # =========================
+        # SELL
+        # =========================
+
+        elif not signal and old_position:
+
+            print("🔴 SELL")
+
+            message = build_signal_message(
+                ticker,
+                "SELL",
+                row,
+                now
+            )
+
+            if send_telegram(message):
+                state[ticker] = False
+                save_state(state)
 
         else:
-            print(
-                f"{symbol}: HOLD | "
-                f"entry={entry} exit={exit_signal} "
-                f"position={old_position}"
-            )
+            print("— Không có tín hiệu mới")
 
     except Exception as e:
-        print(f"{symbol}: ERROR: {e}")
+        print(
+            f"❌ {ticker}: "
+            f"{type(e).__name__}: {e}"
+        )
 
 
 def main():
-    print("=" * 80)
-    print("VRE SURVIVAL V1.8 LIVE")
-    print("=" * 80)
 
-    if not in_trading_session():
-        print("Outside trading session.")
+    print("=" * 70)
+    print("ST5 LIVE — INTRADAY 5M")
+    print("=" * 70)
+
+    now = now_vietnam()
+
+    print(
+        "Vietnam:",
+        now.strftime("%Y-%m-%d %H:%M:%S")
+    )
+
+    # =========================
+    # TELEGRAM TEST
+    # =========================
+
+    if os.getenv("TELEGRAM_TEST") == "1":
+        print("📨 TELEGRAM TEST")
+        send_test()
         return
+
+    # =========================
+    # SESSION CHECK
+    # =========================
+
+    if not in_trading_session(now):
+
+        print("⏸ Ngoài giờ giao dịch")
+
+        return
+
+    print("🟢 ĐANG TRONG PHIÊN")
 
     state = load_state()
 
-    for symbol in SYMBOLS:
-        process_symbol(symbol, state)
-        save_state(state)
-        time.sleep(4)
+    print(
+        f"CORE26: {len(CORE26)} mã"
+    )
 
-    save_state(state)
+    for ticker in CORE26:
 
-    print("=" * 80)
-    print("V1.8 RUN COMPLETE")
-    print("=" * 80)
+        process_ticker(
+            ticker,
+            state,
+            now
+        )
+
+    print()
+    print("=" * 70)
+    print("ST5 LIVE HOÀN TẤT")
+    print("=" * 70)
 
 
 if __name__ == "__main__":
