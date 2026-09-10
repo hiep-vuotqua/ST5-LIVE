@@ -77,7 +77,7 @@ jobs:
 
         run: |
 
-          PYTHONPATH=Scr python Scr/main.py
+          PYTHONPATH=Scr python Scr/v18_main.py
 
 
       - name: Show LIVE state
