@@ -126,7 +126,7 @@ def add_v14_indicators(df):
     ]
 
     if missing:
-        raise ValueError(z
+        raise ValueError(
             f"Thiếu cột dữ liệu: {missing}"
         )
 
