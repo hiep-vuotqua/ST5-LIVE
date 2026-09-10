@@ -1,4 +1,5 @@
 {
   "VCI": true,
-  "HDB": true
+  "HDB": false,
+  "SHB": true
 }
