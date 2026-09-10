@@ -126,7 +126,7 @@ def add_v14_indicators(df):
     ]
 
     if missing:
-        raise ValueError(
+        raise ValueError(z
             f"Thiếu cột dữ liệu: {missing}"
         )
 
@@ -140,7 +140,13 @@ def add_v14_indicators(df):
     return df
 
 
-def v14_signal(df):
+def v14_signal(
+    df,
+    volume_ratio_min=1.5,
+    roc10_min=4.0,
+    macd_hist_min=0.0,
+    adx14_min=30.0,
+):
     required = [
         "VolumeRatio",
         "ROC10",
@@ -159,8 +165,8 @@ def v14_signal(df):
         )
 
     return (
-        (df["VolumeRatio"] > 1.5)
-        & (df["ROC10"] > 4.0)
-        & (df["MACD_Hist"] > 0.0)
-        & (df["ADX14"] > 30.0)
-    ) 
+        (df["VolumeRatio"] > volume_ratio_min)
+        & (df["ROC10"] > roc10_min)
+        & (df["MACD_Hist"] > macd_hist_min)
+        & (df["ADX14"] > adx14_min)
+    )
