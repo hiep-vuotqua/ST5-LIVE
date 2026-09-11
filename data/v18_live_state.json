@@ -3,6 +3,9 @@
   "HDB": false,
   "SHB": false,
   "EVF": false,
-  "AAS": true,
-  "NKG": true
+  "AAS": false,
+  "NKG": false,
+  "VIB": true,
+  "PVD": true,
+  "DXG": true
 }
