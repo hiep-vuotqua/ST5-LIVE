@@ -1,4 +1,5 @@
 import os
+import time
 import requests
 import pandas as pd
 import numpy as np
@@ -26,55 +27,57 @@ def scan_market():
     signals = []
     today_str = datetime.now().strftime("%Y-%m-%d")
     
-    for ticker in SUPER_CORE:
+    for idx, ticker in enumerate(SUPER_CORE, 1):
+        print(f"[{idx}/32] Đang quét mã {ticker}...")
         try:
             q = Quote(source="VCI", symbol=ticker)
             df = q.history(start="2025-01-01", end=today_str, interval="1D")
-            if df is None or len(df) < 50:
-                continue
+            if df is not None and len(df) >= 50:
+                df.columns = [c.capitalize() for c in df.columns]
                 
-            df.columns = [c.capitalize() for c in df.columns]
-            
-            # Tính chỉ báo
-            df['Vol_SMA20'] = df['Volume'].rolling(20).mean()
-            df['Volume_Ratio'] = df['Volume'] / df['Vol_SMA20']
-            df['ROC10'] = ((df['Close'] - df['Close'].shift(10)) / df['Close'].shift(10)) * 100
-            
-            ema12 = df['Close'].ewm(span=12, adjust=False).mean()
-            ema26 = df['Close'].ewm(span=26, adjust=False).mean()
-            macd = ema12 - ema26
-            df['MACD_Hist'] = macd - macd.ewm(span=9, adjust=False).mean()
-            
-            high, low, close = df['High'], df['Low'], df['Close']
-            tr = pd.concat([high - low, (high - close.shift(1)).abs(), (low - close.shift(1)).abs()], axis=1).max(axis=1)
-            atr14 = tr.rolling(14).mean()
-            up_move = high - high.shift(1)
-            down_move = low.shift(1) - low
-            plus_dm = np.where((up_move > down_move) & (up_move > 0), up_move, 0)
-            minus_dm = np.where((down_move > up_move) & (down_move > 0), down_move, 0)
-            plus_di = 100 * (pd.Series(plus_dm).rolling(14).mean() / atr14)
-            minus_di = 100 * (pd.Series(minus_dm).rolling(14).mean() / atr14)
-            dx = 100 * (plus_di - minus_di).abs() / (plus_di + minus_di)
-            df['ADX14'] = dx.rolling(14).mean()
-            
-            # Kiểm tra phiên hôm nay
-            last_row = df.iloc[-1]
-            is_signal = (
-                (last_row['Volume_Ratio'] >= 1.2) and 
-                (last_row['ROC10'] >= 2.0) and 
-                (last_row['MACD_Hist'] >= -0.2) and 
-                (last_row['ADX14'] >= 20.0)
-            )
-            
-            if is_signal:
-                signals.append({
-                    'ticker': ticker,
-                    'price': last_row['Close'],
-                    'roc10': round(last_row['ROC10'], 2),
-                    'vol_ratio': round(last_row['Volume_Ratio'], 2)
-                })
-        except Exception:
-            continue
+                # Tính chỉ báo
+                df['Vol_SMA20'] = df['Volume'].rolling(20).mean()
+                df['Volume_Ratio'] = df['Volume'] / df['Vol_SMA20']
+                df['ROC10'] = ((df['Close'] - df['Close'].shift(10)) / df['Close'].shift(10)) * 100
+                
+                ema12 = df['Close'].ewm(span=12, adjust=False).mean()
+                ema26 = df['Close'].ewm(span=26, adjust=False).mean()
+                macd = ema12 - ema26
+                df['MACD_Hist'] = macd - macd.ewm(span=9, adjust=False).mean()
+                
+                high, low, close = df['High'], df['Low'], df['Close']
+                tr = pd.concat([high - low, (high - close.shift(1)).abs(), (low - close.shift(1)).abs()], axis=1).max(axis=1)
+                atr14 = tr.rolling(14).mean()
+                up_move = high - high.shift(1)
+                down_move = low.shift(1) - low
+                plus_dm = np.where((up_move > down_move) & (up_move > 0), up_move, 0)
+                minus_dm = np.where((down_move > up_move) & (down_move > 0), down_move, 0)
+                plus_di = 100 * (pd.Series(plus_dm).rolling(14).mean() / atr14)
+                minus_di = 100 * (pd.Series(minus_dm).rolling(14).mean() / atr14)
+                dx = 100 * (plus_di - minus_di).abs() / (plus_di + minus_di)
+                df['ADX14'] = dx.rolling(14).mean()
+                
+                # Kiểm tra phiên hôm nay
+                last_row = df.iloc[-1]
+                is_signal = (
+                    (last_row['Volume_Ratio'] >= 1.2) and 
+                    (last_row['ROC10'] >= 2.0) and 
+                    (last_row['MACD_Hist'] >= -0.2) and 
+                    (last_row['ADX14'] >= 20.0)
+                )
+                
+                if is_signal:
+                    signals.append({
+                        'ticker': ticker,
+                        'price': last_row['Close'],
+                        'roc10': round(last_row['ROC10'], 2),
+                        'vol_ratio': round(last_row['Volume_Ratio'], 2)
+                    })
+        except Exception as e:
+            print(f"Bỏ qua {ticker} do lỗi: {e}")
+        
+        # Tạm nghỉ 3 giây giữa mỗi mã để không vi phạm giới hạn API
+        time.sleep(3)
 
     signals = sorted(signals, key=lambda x: x['roc10'], reverse=True)
     
@@ -91,4 +94,3 @@ def scan_market():
 
 if __name__ == "__main__":
     scan_market()
- 
