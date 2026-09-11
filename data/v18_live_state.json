@@ -1,17 +1,18 @@
 {
-  "VCI": true,
+  "VCI": false,
   "HDB": false,
   "SHB": false,
   "EVF": false,
   "AAS": false,
-  "NKG": true,
-  "VIB": false,
+  "NKG": false,
+  "VIB": true,
   "PVD": false,
   "DXG": false,
-  "KBC": true,
-  "CII": true,
-  "CEO": true,
-  "ACV": true,
-  "KDC": true,
-  "VCG": true
+  "KBC": false,
+  "CII": false,
+  "CEO": false,
+  "ACV": false,
+  "KDC": false,
+  "VCG": false,
+  "SHS": true
 }
