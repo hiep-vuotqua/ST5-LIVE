@@ -38,7 +38,7 @@ def save_state(state):
 # ===== SIGNAL =====
 def core_tch_signal(df):
     return (
-        (df["VolRatio"]  >= VOLUME_RATIO_MIN) &
+        (df["VolumeRatio"]  >= VOLUME_RATIO_MIN) &
         (df["ROC10"]     >= ROC10_MIN) &
         (df["MACD_Hist"] >= MACD_HIST_MIN) &
         (df["ADX14"]     >= ADX14_MIN)
@@ -101,7 +101,7 @@ def process_ticker(ticker, state, tz):
                 f"🟢 <b>MUA {ticker}</b>\n"
                 f"Giá: {last['Close']:.2f}\n"
                 f"Thời gian: {last_dt.strftime('%Y-%m-%d %H:%M')}\n"
-                f"VolRatio: {last['VolRatio']:.2f} | "
+                f"VolumeRatio: {last['VolumeRatio']:.2f} | "
                 f"ROC10: {last['ROC10']:.2f}% | "
                 f"MACD: {last['MACD_Hist']:.3f} | "
                 f"ADX: {last['ADX14']:.1f}"
