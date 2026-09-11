@@ -25,16 +25,21 @@ TELEGRAM_CHAT_ID   = os.environ.get("TELEGRAM_CHAT_ID", "")
 
 # ===== STATE =====
 def load_state():
+    abs_path = os.path.abspath(STATE_FILE)
+    print(f"  [load_state] Reading from: {abs_path}")
     if os.path.exists(STATE_FILE):
         with open(STATE_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
+    print(f"  [load_state] File không tồn tại, trả về rỗng")
     return {}
+
 
 def save_state(state):
     os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
+    abs_path = os.path.abspath(STATE_FILE)
+    print(f"  [save_state] Writing to: {abs_path}")
     with open(STATE_FILE, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2, ensure_ascii=False, default=str)
-
 # ===== SIGNAL =====
 def core_tch_signal(df):
     return (
