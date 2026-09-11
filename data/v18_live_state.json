@@ -2,5 +2,7 @@
   "VCI": false,
   "HDB": false,
   "SHB": false,
-  "EVF": false
+  "EVF": false,
+  "AAS": true,
+  "NKG": true
 }
