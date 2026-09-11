@@ -1,5 +1,5 @@
 # Scr/main_core_tch.py
-# Engine LIVE cho CORE-TCH — 35 mã
+# Engine LIVE cho CORE-TCH — daily 1D
 # Đọc config từ config_core_tch.py
 
 import os
@@ -8,19 +8,17 @@ import time
 from datetime import datetime
 import pytz
 import pandas as pd
-import numpy as np
 import requests
 
 from config_core_tch import (
     CORE_TCH, VOLUME_RATIO_MIN, ROC10_MIN, MACD_HIST_MIN, ADX14_MIN,
-    MIN_HOLD_DAYS, MORNING_START, MORNING_END, AFTERNOON_START, AFTERNOON_END,
-    TIMEZONE, STATE_FILE, TELEGRAM_TITLE, FEE_PER_ROUND, DELAY_BETWEEN_TICKERS
+    MIN_HOLD_DAYS, TIMEZONE, STATE_FILE, TELEGRAM_TITLE,
+    FEE_PER_ROUND, DELAY_BETWEEN_TICKERS
 )
 from data_core_tch import get_intraday_data
 from indicators import add_v14_indicators
 
 
-# ===== TELEGRAM =====
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID   = os.environ.get("TELEGRAM_CHAT_ID", "")
 
@@ -57,7 +55,7 @@ def core_tch_signal(df):
 # ===== TELEGRAM =====
 def send_telegram(msg):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        print("[WARN] Telegram token/chat_id chưa cấu hình")
+        print("[WARN] Telegram chưa cấu hình")
         return
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     try:
@@ -73,7 +71,7 @@ def send_telegram(msg):
 # ===== XỬ LÝ 1 MÃ =====
 def process_ticker(ticker, state, tz):
     try:
-        df = get_intraday_data(ticker, days=20)
+        df = get_intraday_data(ticker, days=60)
     except Exception as e:
         print(f"  [{ticker}] ERROR data: {e}")
         return state
@@ -86,56 +84,50 @@ def process_ticker(ticker, state, tz):
     df["Signal"] = core_tch_signal(df)
 
     last = df.iloc[-1]
-    last_dt = pd.to_datetime(last["Date"])
-    if last_dt.tz is None:
-        last_dt = last_dt.tz_localize(tz)
-    else:
-        last_dt = last_dt.tz_convert(tz)
-
-    # ===== DEBUG: in dữ liệu thô cho tất cả mã =====
-    print(f"  [DEBUG {ticker}] nến cuối: {last['Date']} | "
-          f"O={last['Open']} H={last['High']} L={last['Low']} C={last['Close']} V={last['Volume']}")
-    print(f"  [DEBUG {ticker}] chỉ báo: "
-          f"VolR={last.get('VolumeRatio', 'N/A')} | "
-          f"ROC10={last.get('ROC10', 'N/A')} | "
-          f"MACD={last.get('MACD_Hist', 'N/A')} | "
-          f"ADX={last.get('ADX14', 'N/A')} | "
-          f"Signal={last['Signal']}")
+    last_date = pd.to_datetime(last["Date"]).date()
 
     t_state = state.get(ticker, {
         "in_position": False,
         "buy_date": None,
         "buy_price": None,
+        "last_date": None,
     })
+
+    # ===== CHỐNG TRÙNG: chỉ xử lý 1 lần/ngày/mã =====
+    if t_state.get("last_date") == str(last_date):
+        print(f"  [{ticker}] SKIP — đã xử lý ngày {last_date}")
+        return state
 
     in_pos = t_state["in_position"]
     signal_now = bool(last["Signal"])
+
+    print(f"  [{ticker}] {last_date} | C={last['Close']} | "
+          f"VolR={last['VolumeRatio']:.2f} | ROC10={last['ROC10']:.2f} | "
+          f"MACD={last['MACD_Hist']:.3f} | ADX={last['ADX14']:.1f} | "
+          f"sig={signal_now}")
 
     # ===== CHƯA CÓ VỊ THẾ → XÉT MUA =====
     if not in_pos:
         if signal_now:
             t_state["in_position"] = True
-            t_state["buy_date"]    = last_dt.isoformat()
+            t_state["buy_date"]    = str(last_date)
             t_state["buy_price"]   = float(last["Close"])
+            t_state["last_date"]   = str(last_date)
 
             msg = (
                 f"🟢 <b>MUA {ticker}</b>\n"
                 f"Giá: {last['Close']:.2f}\n"
-                f"Thời gian: {last_dt.strftime('%Y-%m-%d %H:%M')}\n"
-                f"VolumeRatio: {last['VolumeRatio']:.2f} | "
-                f"ROC10: {last['ROC10']:.2f}% | "
-                f"MACD: {last['MACD_Hist']:.3f} | "
-                f"ADX: {last['ADX14']:.1f}"
+                f"Ngày: {last_date}\n"
+                f"VolR: {last['VolumeRatio']:.2f} | ROC10: {last['ROC10']:.2f}% | "
+                f"MACD: {last['MACD_Hist']:.3f} | ADX: {last['ADX14']:.1f}"
             )
             send_telegram(msg)
-            print(f"  [{ticker}] BUY @ {last['Close']:.2f}")
+            print(f"  [{ticker}] >>> BUY @ {last['Close']:.2f}")
 
     # ===== ĐANG CÓ VỊ THẾ → XÉT BÁN =====
     else:
-        buy_dt = pd.to_datetime(t_state["buy_date"])
-        if buy_dt.tz is None:
-            buy_dt = buy_dt.tz_localize(tz)
-        hold_days = (last_dt - buy_dt).days
+        buy_dt = pd.to_datetime(t_state["buy_date"]).date()
+        hold_days = (last_date - buy_dt).days
 
         if (not signal_now) and (hold_days >= MIN_HOLD_DAYS):
             buy_price = t_state["buy_price"]
@@ -145,20 +137,21 @@ def process_ticker(ticker, state, tz):
             t_state["in_position"] = False
             t_state["buy_date"]    = None
             t_state["buy_price"]   = None
+            t_state["last_date"]   = str(last_date)
 
             msg = (
                 f"🔴 <b>BÁN {ticker}</b>\n"
                 f"Giá bán: {last['Close']:.2f} | Giá mua: {buy_price:.2f}\n"
                 f"Return: {ret:+.2f}% (net {ret_net:+.2f}%)\n"
-                f"Hold: {hold_days} phiên\n"
-                f"Thời gian: {last_dt.strftime('%Y-%m-%d %H:%M')}"
+                f"Hold: {hold_days} ngày\n"
+                f"Ngày: {last_date}"
             )
             send_telegram(msg)
-            print(f"  [{ticker}] SELL @ {last['Close']:.2f} | ret {ret:+.2f}%")
+            print(f"  [{ticker}] >>> SELL @ {last['Close']:.2f} | ret {ret:+.2f}%")
         else:
-            print(f"  [{ticker}] HOLD | {hold_days}p | sig={signal_now}")
+            t_state["last_date"] = str(last_date)
+            print(f"  [{ticker}] HOLD | {hold_days} ngày | sig={signal_now}")
 
-    t_state["last_update"] = last_dt.isoformat()
     state[ticker] = t_state
     return state
 
