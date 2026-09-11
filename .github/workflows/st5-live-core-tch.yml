@@ -13,11 +13,12 @@ on:
 
 concurrency:
   group: st5-live-core-tch
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   run:
     runs-on: ubuntu-latest
+    timeout-minutes: 4
     permissions:
       contents: write
 
@@ -48,4 +49,4 @@ jobs:
           git config user.email "bot@st5.local"
           git add data/live_state_core_tch.json
           git diff --staged --quiet || git commit -m "Update CORE-TCH state $(date -u +'%Y-%m-%d %H:%M UTC')"
-          git push 
+          git push
