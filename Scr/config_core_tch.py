@@ -31,8 +31,7 @@ TIMEZONE        = "Asia/Ho_Chi_Minh"
 FEE_PER_ROUND = 0.4  # % mỗi vòng
 
 # ===== STATE FILE =====
-STATE_FILE = "data/live_state_core_tch.json"
-
+STATE_FILE = "../data/live_state_core_tch.json"
 # ===== TELEGRAM =====
 TELEGRAM_TITLE = "ST5 CORE-TCH"
 
