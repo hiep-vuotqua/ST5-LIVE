@@ -19,7 +19,7 @@ from config_core_mbb import (
     TIMEZONE,
 )
 
-from data import get_intraday_data
+from data_core_mbb import get_intraday_data
 from indicators import add_v14_indicators, v14_signal
 
 
@@ -91,13 +91,15 @@ def build_signal_message(ticker, action, row, now, hold_info=""):
     return (
         f"🚨 ST5 CORE-MBB {action}\n\n"
         f"Mã: {ticker}\n"
-        f"Giá: {price:.2f}\n"
+        f"Giá adjusted: {price:.2f}\n"
         f"Thời gian: {now.strftime('%d/%m/%Y %H:%M:%S')}\n\n"
         f"Volume Ratio: {vr:.2f} {'✅' if vr > VOLUME_RATIO_MIN else '❌'}\n"
         f"ROC10: {roc:.2f}% {'✅' if roc > ROC10_MIN else '❌'}\n"
         f"MACD Hist: {macd:.4f} {'✅' if macd > MACD_HIST_MIN else '❌'}\n"
         f"ADX14: {adx:.2f} {'✅' if adx > ADX14_MIN else '❌'}\n\n"
-        f"ST5 V1.4-MBB: 4/4 HỘI TỤ"
+        f"ST5 V1.4-MBB: 4/4 HỘI TỤ\n"
+        f"\n⚠️ Giá đã điều chỉnh chia tách/cổ tức.\n"
+        f"→ Kiểm tra giá sàn trước khi đặt lệnh."
         f"{hold_info}"
     )
 
@@ -128,7 +130,7 @@ def get_position_info(state, ticker):
 def count_trading_days_since(df, entry_date):
     """
     Đếm số ngày giao dịch đã qua kể từ entry_date,
-    dựa trên các ngày xuất hiện trong dữ liệu intraday.
+    dựa trên các ngày xuất hiện trong dữ liệu daily.
     """
     if not entry_date:
         return 0
@@ -171,7 +173,7 @@ def can_sell_min_hold(df, entry_date, now):
 def process_ticker(ticker, state, now):
     print(f"\n========== {ticker} ==========")
     try:
-        df = get_intraday_data(ticker, days=5)
+        df = get_intraday_data(ticker, days=60)
         if df.empty:
             print("❌ Không có dữ liệu")
             return False
@@ -267,12 +269,6 @@ def main():
     now = now_vietnam()
     print("Vietnam:", now.strftime("%Y-%m-%d %H:%M:%S"))
 
-    if not in_trading_session(now):
-        print("⏸ Ngoài giờ giao dịch")
-        return
-
-    print("🟢 ĐANG TRONG PHIÊN")
-
     state = load_state()
     if normalize_old_state(state):
         save_state(state)
@@ -286,7 +282,7 @@ def main():
         if changed:
             signal_count += 1
         if index < len(CORE_MBB) - 1:
-            time.sleep(4)
+            time.sleep(3)
 
     save_state(state)
     print()
