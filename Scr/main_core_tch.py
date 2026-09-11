@@ -1,5 +1,5 @@
 # Scr/main_core_tch.py
-# Engine LIVE cho CORE-TCH — 34 mã
+# Engine LIVE cho CORE-TCH — 35 mã
 # Đọc config từ config_core_tch.py
 
 import os
@@ -16,12 +16,14 @@ from config_core_tch import (
     MIN_HOLD_DAYS, MORNING_START, MORNING_END, AFTERNOON_START, AFTERNOON_END,
     TIMEZONE, STATE_FILE, TELEGRAM_TITLE, FEE_PER_ROUND, DELAY_BETWEEN_TICKERS
 )
-from data import get_intraday_data
+from data_core_tch import get_intraday_data
 from indicators import add_v14_indicators
+
 
 # ===== TELEGRAM =====
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID   = os.environ.get("TELEGRAM_CHAT_ID", "")
+
 
 # ===== STATE =====
 def load_state():
@@ -40,14 +42,17 @@ def save_state(state):
     print(f"  [save_state] Writing to: {abs_path}")
     with open(STATE_FILE, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2, ensure_ascii=False, default=str)
+
+
 # ===== SIGNAL =====
 def core_tch_signal(df):
     return (
-        (df["VolumeRatio"]  >= VOLUME_RATIO_MIN) &
-        (df["ROC10"]     >= ROC10_MIN) &
-        (df["MACD_Hist"] >= MACD_HIST_MIN) &
-        (df["ADX14"]     >= ADX14_MIN)
+        (df["VolumeRatio"] >= VOLUME_RATIO_MIN) &
+        (df["ROC10"]       >= ROC10_MIN) &
+        (df["MACD_Hist"]   >= MACD_HIST_MIN) &
+        (df["ADX14"]       >= ADX14_MIN)
     )
+
 
 # ===== TELEGRAM =====
 def send_telegram(msg):
@@ -63,6 +68,7 @@ def send_telegram(msg):
         }, timeout=10)
     except Exception as e:
         print(f"[ERROR] Telegram: {e}")
+
 
 # ===== XỬ LÝ 1 MÃ =====
 def process_ticker(ticker, state, tz):
@@ -85,6 +91,16 @@ def process_ticker(ticker, state, tz):
         last_dt = last_dt.tz_localize(tz)
     else:
         last_dt = last_dt.tz_convert(tz)
+
+    # ===== DEBUG: in dữ liệu thô cho tất cả mã =====
+    print(f"  [DEBUG {ticker}] nến cuối: {last['Date']} | "
+          f"O={last['Open']} H={last['High']} L={last['Low']} C={last['Close']} V={last['Volume']}")
+    print(f"  [DEBUG {ticker}] chỉ báo: "
+          f"VolR={last.get('VolumeRatio', 'N/A')} | "
+          f"ROC10={last.get('ROC10', 'N/A')} | "
+          f"MACD={last.get('MACD_Hist', 'N/A')} | "
+          f"ADX={last.get('ADX14', 'N/A')} | "
+          f"Signal={last['Signal']}")
 
     t_state = state.get(ticker, {
         "in_position": False,
@@ -146,6 +162,7 @@ def process_ticker(ticker, state, tz):
     state[ticker] = t_state
     return state
 
+
 # ===== MAIN =====
 def main():
     tz = pytz.timezone(TIMEZONE)
@@ -158,7 +175,6 @@ def main():
 
     state = load_state()
 
-    # ===== QUÉT 34 MÃ =====
     n_buy = 0
     n_sell = 0
     for i, ticker in enumerate(CORE_TCH, 1):
@@ -172,6 +188,7 @@ def main():
 
     save_state(state)
     print(f"\n===== DONE — BUY: {n_buy}, SELL: {n_sell}, Total: {len(CORE_TCH)} =====")
+
 
 if __name__ == "__main__":
     main()
