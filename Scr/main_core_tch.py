@@ -11,11 +11,11 @@ import pandas as pd
 import numpy as np
 import requests
 
-from config_core_tch import (
+from config_core_tch import 
     CORE_TCH, VOLUME_RATIO_MIN, ROC10_MIN, MACD_HIST_MIN, ADX14_MIN,
     MIN_HOLD_DAYS, MORNING_START, MORNING_END, AFTERNOON_START, AFTERNOON_END,
     TIMEZONE, STATE_FILE, TELEGRAM_TITLE, FEE_PER_ROUND, DELAY_BETWEEN_TICKERS
-)from data_core_tch import get_intraday_data 
+from data_core_tch import get_intraday_data 
 from indicators import add_v14_indicators
 
 # ===== TELEGRAM =====
