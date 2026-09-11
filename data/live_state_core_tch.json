@@ -190,5 +190,23 @@
     "buy_date": null,
     "buy_price": null,
     "last_update": "2026-09-11T14:20:00+07:00"
+  },
+  "FDC": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-10T13:35:00+07:00"
+  },
+  "SAV": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-10T14:45:00+07:00"
+  },
+  "TMS": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
   }
 }
