@@ -8,7 +8,7 @@ CORE_TCH = [
     "NHA", "FRT", "FDC", "CIG", "QCG", "SAV", "VIX", "ABB", "SCL",
     "MBS", "APG", "SJS", "SLS", "SAS", "HAH", "SIP", "CTR", "MCH",
     "IMP", "PCE", "STB", "BCM", "ANV", "NTP", "DBD", "MSB", "HTN",
-    "TMS", "GEG", "POW", "AST", "TCM", "VSC", "TCH",
+    "TMS", "GEG", "POW", "AST", "TCM", "VSC", "TCH", "HTI"
 ]
 
 # ===== NGƯỠNG CHIẾN LƯỢC =====
