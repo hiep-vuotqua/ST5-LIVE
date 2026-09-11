@@ -17,11 +17,12 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 def send_telegram(message):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        print("Chưa cấu hình Telegram Token/Chat ID.")
+        print("❌ Chưa cấu hình TELEGRAM_BOT_TOKEN hoặc TELEGRAM_CHAT_ID trong Secrets!")
         return
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}
-    requests.post(url, json=payload)
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message}
+    res = requests.post(url, json=payload)
+    print(f"KẾT QUẢ GỬI TELEGRAM: {res.status_code} - {res.text}")
 
 def scan_market():
     signals = []
