@@ -116,13 +116,15 @@ def process_ticker(ticker, state, tz):
 
             msg = (
                 f"🟢 <b>MUA {ticker}</b>\n"
-                f"Giá: {last['Close']:.2f}\n"
+                f"Giá adjusted: {last['Close']:.2f}\n"
                 f"Ngày: {last_date}\n"
                 f"VolR: {last['VolumeRatio']:.2f} | ROC10: {last['ROC10']:.2f}% | "
-                f"MACD: {last['MACD_Hist']:.3f} | ADX: {last['ADX14']:.1f}"
+                f"MACD: {last['MACD_Hist']:.3f} | ADX: {last['ADX14']:.1f}\n"
+                f"\n⚠️ Giá đã điều chỉnh chia tách/cổ tức.\n"
+                f"→ Kiểm tra giá sàn trước khi đặt lệnh."
             )
             send_telegram(msg)
-            print(f"  [{ticker}] >>> BUY @ {last['Close']:.2f}")
+            print(f"  [{ticker}] >>> BUY @ {last['Close']:.2f} (adjusted)")
 
     # ===== ĐANG CÓ VỊ THẾ → XÉT BÁN =====
     else:
@@ -141,10 +143,13 @@ def process_ticker(ticker, state, tz):
 
             msg = (
                 f"🔴 <b>BÁN {ticker}</b>\n"
-                f"Giá bán: {last['Close']:.2f} | Giá mua: {buy_price:.2f}\n"
+                f"Giá bán (adjusted): {last['Close']:.2f}\n"
+                f"Giá mua (adjusted): {buy_price:.2f}\n"
                 f"Return: {ret:+.2f}% (net {ret_net:+.2f}%)\n"
                 f"Hold: {hold_days} ngày\n"
-                f"Ngày: {last_date}"
+                f"Ngày: {last_date}\n"
+                f"\n⚠️ Giá đã điều chỉnh chia tách/cổ tức.\n"
+                f"→ Kiểm tra giá sàn trước khi đặt lệnh."
             )
             send_telegram(msg)
             print(f"  [{ticker}] >>> SELL @ {last['Close']:.2f} | ret {ret:+.2f}%")
@@ -184,4 +189,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main() 
