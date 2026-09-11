@@ -1,1 +1,194 @@
-{}
+{
+  "NHA": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "FRT": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "CIG": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "QCG": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "VIX": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "ABB": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:55:00+07:00"
+  },
+  "SCL": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:55:00+07:00"
+  },
+  "MBS": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "APG": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "SJS": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "SLS": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:10:00+07:00"
+  },
+  "SAS": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:30:00+07:00"
+  },
+  "HAH": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "SIP": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "CTR": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "MCH": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "IMP": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "PCE": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "STB": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "BCM": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "ANV": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "NTP": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "DBD": {
+    "in_position": true,
+    "buy_date": "2026-09-11T14:45:00+07:00",
+    "buy_price": 46.95,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "MSB": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "HTN": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "GEG": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "POW": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "AST": {
+    "in_position": true,
+    "buy_date": "2026-09-11T14:45:00+07:00",
+    "buy_price": 67.9,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "TCM": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "VSC": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "TCH": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "HTI": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_update": "2026-09-11T14:20:00+07:00"
+  }
+}
