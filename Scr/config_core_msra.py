@@ -33,3 +33,9 @@ STATE_FILE = "data/live_state_core_msra.json"
 
 # --- Data ---
 DATA_START = "2018-09-01"
+# ===== GIỜ GIAO DỊCH =====
+MORNING_START   = "09:15"
+MORNING_END     = "11:30"
+AFTERNOON_START = "13:00"
+AFTERNOON_END   = "14:40"
+TIMEZONE        = "Asia/Ho_Chi_Minh"
