@@ -35,7 +35,7 @@ CORE_MBB = [
 VOLUME_RATIO_MIN = 1.0
 ROC10_MIN = 1.0
 MACD_HIST_MIN = -0.5
-ADX14_MIN = 15.0
+ADX14_MIN = 20.0
 
 # =========================
 # MIN HOLD — 10 PHIÊN DAILY
