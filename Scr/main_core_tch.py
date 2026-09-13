@@ -13,7 +13,8 @@ import requests
 from config_core_tch import (
     CORE_TCH, VOLUME_RATIO_MIN, ROC10_MIN, MACD_HIST_MIN, ADX14_MIN,
     MIN_HOLD_DAYS, TIMEZONE, STATE_FILE, TELEGRAM_TITLE,
-    FEE_PER_ROUND, DELAY_BETWEEN_TICKERS
+    FEE_PER_ROUND, DELAY_BETWEEN_TICKERS,
+    MORNING_START, MORNING_END, AFTERNOON_START, AFTERNOON_END,
 )
 from data_core_tch import get_intraday_data
 from indicators import add_v14_indicators
@@ -71,7 +72,7 @@ def send_telegram(msg):
 # ===== XỬ LÝ 1 MÃ =====
 def process_ticker(ticker, state, tz):
     try:
-        df = get_intraday_data(ticker, days=60)
+        df = get_intraday_data(ticker, days=400)
     except Exception as e:
         print(f"  [{ticker}] ERROR data: {e}")
         return state
@@ -170,6 +171,17 @@ def main():
     if now.weekday() >= 5:
         print("Cuối tuần — bỏ qua")
         return
+
+    # ===== CHECK GIỜ GIAO DỊCH =====
+    t = now.strftime("%H:%M")
+    in_session = (
+        (MORNING_START <= t <= MORNING_END) or
+        (AFTERNOON_START <= t <= AFTERNOON_END)
+    )
+    if not in_session:
+        print(f"Ngoài giờ giao dịch ({t}) — bỏ qua")
+        return
+    # ===== HẾT CHECK =====
 
     state = load_state()
 
