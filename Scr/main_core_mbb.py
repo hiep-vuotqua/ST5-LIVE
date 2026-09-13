@@ -86,7 +86,7 @@ def build_signal_message(ticker, action, row, now, hold_info=""):
     price = float(row["Close"])
     vr = float(row["VolumeRatio"])
     roc = float(row["ROC10"])
-    macd = float(row["MACD_Hist"])
+    macd = float(row["MACD_Hist"])s
     adx = float(row["ADX14"])
     return (
         f"🚨 ST5 CORE-MBB {action}\n\n"
@@ -268,6 +268,12 @@ def main():
 
     now = now_vietnam()
     print("Vietnam:", now.strftime("%Y-%m-%d %H:%M:%S"))
+
+    # ===== CHECK GIỜ GIAO DỊCH =====
+    if not in_trading_session(now):
+        print(f"Ngoài giờ giao dịch ({now.strftime('%H:%M')}) — bỏ qua")
+        return
+    # ===== HẾT CHECK =====
 
     state = load_state()
     if normalize_old_state(state):
