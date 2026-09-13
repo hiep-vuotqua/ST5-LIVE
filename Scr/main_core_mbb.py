@@ -173,7 +173,7 @@ def can_sell_min_hold(df, entry_date, now):
 def process_ticker(ticker, state, now):
     print(f"\n========== {ticker} ==========")
     try:
-        df = get_intraday_data(ticker, days=60)
+        df = get_intraday_data(ticker, days=400)
         if df.empty:
             print("❌ Không có dữ liệu")
             return False
