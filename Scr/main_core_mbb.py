@@ -86,7 +86,7 @@ def build_signal_message(ticker, action, row, now, hold_info=""):
     price = float(row["Close"])
     vr = float(row["VolumeRatio"])
     roc = float(row["ROC10"])
-    macd = float(row["MACD_Hist"])s
+    macd = float(row["MACD_Hist"])
     adx = float(row["ADX14"])
     return (
         f"🚨 ST5 CORE-MBB {action}\n\n"
