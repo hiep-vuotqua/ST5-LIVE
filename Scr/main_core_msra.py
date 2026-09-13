@@ -4,12 +4,14 @@
 import json
 import os
 from datetime import datetime
+import pytz
 import pandas as pd
 import requests
 
 from config_core_msra import (
     TICKERS, ADX14_MIN, MIN_HOLD_DAYS, FEE_ROUND,
     TELEGRAM_TOKEN_ENV, TELEGRAM_CHAT_ID_ENV, STATE_FILE,
+    MORNING_START, MORNING_END, AFTERNOON_START, AFTERNOON_END, TIMEZONE,
 )
 from data_core_msra import load_stock, add_indicators, add_signal
 
@@ -47,6 +49,19 @@ def send_telegram(msg):
 
 
 def run():
+    # ===== CHECK GIỜ GIAO DỊCH =====
+    tz = pytz.timezone(TIMEZONE)
+    now_tz = datetime.now(tz)
+    if now_tz.weekday() >= 5:
+        print(f"Cuối tuần ({now_tz.strftime('%A')}) — bỏ qua")
+        return
+    t = now_tz.strftime("%H:%M")
+    if not ((MORNING_START <= t <= MORNING_END) or
+            (AFTERNOON_START <= t <= AFTERNOON_END)):
+        print(f"Ngoài giờ giao dịch ({t}) — bỏ qua")
+        return
+    # ===== HẾT CHECK GIỜ =====
+
     state = load_state()
     positions = state.get("positions", {})
     today = datetime.now().strftime("%Y-%m-%d")
