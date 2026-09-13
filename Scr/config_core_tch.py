@@ -24,7 +24,7 @@ MIN_HOLD_DAYS = 10  # phiên
 MORNING_START   = "09:15"
 MORNING_END     = "11:30"
 AFTERNOON_START = "13:00"
-AFTERNOON_END   = "14:30"
+AFTERNOON_END   = "14:40"
 TIMEZONE        = "Asia/Ho_Chi_Minh"
 
 # ===== PHÍ + THUẾ =====
