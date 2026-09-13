@@ -45,7 +45,7 @@ def load_stock(ticker):
 
 
 def add_indicators(df):
-    """Công thức giống backtest_adx (SMA-ADX)."""
+    """Wilder's-ADX — chuẩn quốc tế, thống nhất MBB/TCH."""
     df = df.copy()
     df["VolMA20"] = df["Volume"].rolling(20).mean()
     df["VolumeRatio"] = df["Volume"] / df["VolMA20"]
@@ -57,26 +57,31 @@ def add_indicators(df):
     signal = macd.ewm(span=9, adjust=False).mean()
     df["MACD_Hist"] = macd - signal
 
+    # ===== ADX WILDER'S =====
+    period = 14
     high, low, close = df["High"], df["Low"], df["Close"]
-    plus_dm = high.diff().clip(lower=0)
-    minus_dm = (-low.diff()).clip(lower=0)
+    up_move = high.diff()
+    down_move = -low.diff()
+    plus_dm = np.where((up_move > down_move) & (up_move > 0), up_move, 0.0)
+    minus_dm = np.where((down_move > up_move) & (down_move > 0), down_move, 0.0)
     tr = pd.concat([
         high - low,
         (high - close.shift(1)).abs(),
         (low - close.shift(1)).abs(),
     ], axis=1).max(axis=1)
-    atr = tr.rolling(14).mean()
-    plus_di = 100 * (plus_dm.rolling(14).mean() / atr)
-    minus_di = 100 * (minus_dm.rolling(14).mean() / atr)
-    dx = 100 * (plus_di - minus_di).abs() / (plus_di + minus_di)
-    df["ADX14"] = dx.rolling(14).mean()
+    atr = tr.ewm(alpha=1/period, adjust=False).mean()
+    plus_di = 100 * pd.Series(plus_dm, index=df.index).ewm(alpha=1/period, adjust=False).mean() / atr
+    minus_di = 100 * pd.Series(minus_dm, index=df.index).ewm(alpha=1/period, adjust=False).mean() / atr
+    dx = 100 * (plus_di - minus_di).abs() / (plus_di + minus_di).replace(0, np.nan)
+    df["ADX14"] = dx.ewm(alpha=1/period, adjust=False).mean()
+    # ===== HẾT ADX WILDER'S =====
 
     df["MA50"] = df["Close"].rolling(50).mean()
     df["MA200"] = df["Close"].rolling(200).mean()
     return df
 
 
-def add_signal(df, adx_min=30):
+def add_signal(df, adx_min=22):
     """Luật A1i+50 — dấu >= giống backtest."""
     df = df.copy()
     df["Signal"] = (
