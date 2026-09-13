@@ -7,10 +7,10 @@ from datetime import datetime, timedelta
 from vnstock import Quote
 
 
-def get_intraday_data(ticker, days=60):
+def get_intraday_data(ticker, days=400):
     """
     Lấy dữ liệu daily 1D cho CORE-TCH.
-    - days: số ngày lookback (mặc định 60 để đủ tính MA20, ADX14, ROC10)
+    - days: số ngày lookback (mặc định 400 để đủ tính MA20, ADX14, ROC10)
     - Trả về DataFrame với cột: Date, Open, High, Low, Close, Volume
     - Nếu fail → trả về DataFrame rỗng
     """
