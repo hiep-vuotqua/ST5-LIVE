@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from vnstock import Quote
 
 
-def get_intraday_data(ticker, days=60):
+def get_intraday_data(ticker, days=400):
     """
     Lấy dữ liệu daily 1D cho CORE-MBB.
     - days: số ngày lookback (mặc định 60 đủ cho MA20, ADX14, ROC10)
