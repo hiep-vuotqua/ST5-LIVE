@@ -112,7 +112,7 @@
     "buy_date": "2026-09-11",
     "buy_price": 77.3,
     "last_update": "2026-09-11T14:45:00+07:00",
-    "last_date": "2026-09-11"
+    "last_date": "2026-09-15"
   },
   "BCM": {
     "in_position": false,
@@ -137,7 +137,7 @@
     "buy_date": "2026-09-11T14:45:00+07:00",
     "buy_price": 46.95,
     "last_update": "2026-09-11T14:45:00+07:00",
-    "last_date": "2026-09-11"
+    "last_date": "2026-09-14"
   },
   "MSB": {
     "in_position": false,
@@ -150,7 +150,7 @@
     "buy_date": "2026-09-11",
     "buy_price": 6.65,
     "last_update": "2026-09-11T14:45:00+07:00",
-    "last_date": "2026-09-11"
+    "last_date": "2026-09-15"
   },
   "GEG": {
     "in_position": false,
@@ -169,7 +169,7 @@
     "buy_date": "2026-09-11T14:45:00+07:00",
     "buy_price": 67.9,
     "last_update": "2026-09-11T14:45:00+07:00",
-    "last_date": "2026-09-11"
+    "last_date": "2026-09-15"
   },
   "TCM": {
     "in_position": false,
