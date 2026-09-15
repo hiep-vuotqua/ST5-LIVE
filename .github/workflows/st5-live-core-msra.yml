@@ -1,63 +1,42 @@
-ưname: Run CORE-MSRA
+name: Run CORE-MSRA
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '15 2 * * 1-5'   # 09:15 VN
-    - cron: '0  3 * * 1-5'   # 10:00 VN
-    - cron: '0  4 * * 1-5'   # 11:00 VN
-    - cron: '0  6 * * 1-5'   # 13:00 VN
-    - cron: '30 6 * * 1-5'   # 13:30 VN
-    - cron: '30 7 * * 1-5'   # 14:30 VN
+    - cron: '15 2 * * 1-5'
+    - cron: '0  3 * * 1-5'
+    - cron: '0  4 * * 1-5'
+    - cron: '0  6 * * 1-5'
+    - cron: '30 6 * * 1-5'
+    - cron: '30 7 * * 1-5'
 
 jobs:
-  run-st5-live-core-msra:
+  run-msra:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     permissions:
       contents: write
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install --upgrade pandas numpy requests pytz
-
-      - name: Locate and run main.py
+      - name: Install
+        run: pip install --upgrade pip pandas numpy requests pytz
+      - name: Find and run main.py
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          echo "=== Cây thư mục repo ==="
-          find . -type f -name "*.py" -not -path "./.git/*"
-          
-          MAIN_PY=$(find . -name "main.py" -not -path "./.git/*" | head -n 1)
-          
-          if [ -z "$MAIN_PY" ]; then
-            echo "❌ KHÔNG TÌM THẤY main.py"
-            exit 1
-          fi
-          
-          echo "✅ Tìm thấy: $MAIN_PY"
-          cd "$(dirname "$MAIN_PY")"
-          echo "📂 Đang ở: $(pwd)"
-          ls -la
+          find . -name "*.py" -not -path "./.git/*"
+          MAIN=$(find . -name "main.py" -not -path "./.git/*" | head -1)
+          if [ -z "$MAIN" ]; then exit 1; fi
+          cd "$(dirname "$MAIN")"
           python main.py
-
-      - name: Commit state & cache
+      - name: Commit
+        if: always()
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -A data/ cache_data/ 2>/dev/null || true
-          git diff --staged --quiet || git commit -m "Update state & cache [skip ci]"
+          git config user.name bot
+          git config user.email bot@x.com
+          git add -A
+          git diff --staged --quiet || git commit -m "state [skip ci]"
           git push || true 
