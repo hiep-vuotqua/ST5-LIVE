@@ -1,4 +1,4 @@
-name: Run CORE-MSRA
+ưname: Run CORE-MSRA
 
 on:
   workflow_dispatch:
@@ -33,7 +33,7 @@ jobs:
           pip install --upgrade pip
           pip install --upgrade pandas numpy requests pytz
 
-            - name: Locate and run main.py
+      - name: Locate and run main.py
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
