@@ -33,11 +33,26 @@ jobs:
           pip install --upgrade pip
           pip install --upgrade pandas numpy requests pytz
 
-      - name: Run script
+            - name: Locate and run main.py
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python main.py
+        run: |
+          echo "=== Cây thư mục repo ==="
+          find . -type f -name "*.py" -not -path "./.git/*"
+          
+          MAIN_PY=$(find . -name "main.py" -not -path "./.git/*" | head -n 1)
+          
+          if [ -z "$MAIN_PY" ]; then
+            echo "❌ KHÔNG TÌM THẤY main.py"
+            exit 1
+          fi
+          
+          echo "✅ Tìm thấy: $MAIN_PY"
+          cd "$(dirname "$MAIN_PY")"
+          echo "📂 Đang ở: $(pwd)"
+          ls -la
+          python main.py
 
       - name: Commit state & cache
         run: |
