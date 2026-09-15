@@ -16,23 +16,17 @@ except Exception as e:
 
 
 def _fetch_vnstock(ticker, start_str, end_str):
-    """
-    Lấy dữ liệu lịch sử từ vnstock.
-    Thử nguồn KBS trước, sau đó đến VCI.
-    """
-    if not VNSTOCK_OK:
-        raise ValueError("vnstock chưa được cài đặt hoặc import thất bại")
-
+    """Lấy dữ liệu lịch sử từ vnstock — API mới (vnstock.api.quote)."""
     for source in ["KBS", "VCI"]:
         try:
-            stock = Vnstock().stock(symbol=ticker, source=source)
-            df = stock.quote.history(start=start_str, end=end_str, interval="1D")
+            from vnstock.api.quote import Quote
+            q = Quote(symbol=ticker, source=source)
+            df = q.history(start=start_str, end=end_str, interval="1D")
 
             if df is None or len(df) == 0:
                 print(f"  [{ticker}][{source}] trả về rỗng")
                 continue
 
-            # Chuẩn hóa tên cột
             df.columns = [str(c).strip().lower() for c in df.columns]
             rename = {
                 "time": "Date", "date": "Date",
@@ -61,7 +55,7 @@ def _fetch_vnstock(ticker, start_str, end_str):
                 print(f"  [{ticker}][{source}] chỉ {len(df)} nến")
                 continue
 
-            time.sleep(0.5)  # Nghỉ giữa các request để tránh rate limit
+            time.sleep(0.5)
             print(f"  [{ticker}][{source}] OK — {len(df)} nến, cuối {df.iloc[-1]['Date'].date()}")
             return df
 
