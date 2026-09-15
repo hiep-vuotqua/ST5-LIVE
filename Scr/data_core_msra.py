@@ -1,113 +1,74 @@
-# ============================================================
-# CORE-MSRA DATA V3 — TCBS API + cache + fallback
-# ============================================================
-import os
+# Scr/data_core_msra.py
+# Data fetcher CORE-MSRA — daily 1D
+# Nguồn: vnstock (KBS → VCI)
+
 import time
 import numpy as np
 import pandas as pd
-import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 from config_core_msra import DATA_START
 
-# ============ CACHE ============
-CACHE_DIR = "cache_data"
-CACHE_TTL_HOURS = 4
+try:
+    from vnstock.api.quote import Quote
+    VNSTOCK_OK = True
+except Exception as e:
+    VNSTOCK_OK = False
+    print(f"  [CẢNH BÁO] Không import được vnstock: {e}")
 
 
-def _cache_path(ticker):
-    os.makedirs(CACHE_DIR, exist_ok=True)
-    return os.path.join(CACHE_DIR, f"{ticker}.csv")
-
-
-def _load_cache(ticker):
-    path = _cache_path(ticker)
-    if not os.path.exists(path):
-        return None
-    age_hours = (time.time() - os.path.getmtime(path)) / 3600
-    if age_hours > CACHE_TTL_HOURS:
-        return None
-    try:
-        df = pd.read_csv(path, parse_dates=["Date"])
-        df.attrs["source"] = "cache"
-        return df
-    except Exception:
-        return None
-
-
-def _save_cache(ticker, df):
-    try:
-        df.to_csv(_cache_path(ticker), index=False)
-    except Exception:
-        pass
-
-
-# ============ TCBS API ============
-def _load_tcbs(ticker):
-    """TCBS public API — không cần key, không rate limit."""
-    url = "https://apipubaws.tcbs.com.vn/stock-insight/v1/stock/bars-long-term"
-    start_ts = int(pd.Timestamp(DATA_START).timestamp())
-    end_ts = int(pd.Timestamp(datetime.now()).timestamp())
-    params = {
-        "ticker": ticker, "type": "stock", "resolution": "D",
-        "from": start_ts, "to": end_ts,
-    }
-    headers = {"User-Agent": "Mozilla/5.0 (compatible; CORE-MSRA/1.0)"}
-    r = requests.get(url, params=params, headers=headers, timeout=30)
-    r.raise_for_status()
-    payload = r.json()
-    data = payload.get("data") or []
-    if not data:
-        raise ValueError(f"TCBS trả rỗng cho {ticker}")
-    df = pd.DataFrame(data)
-    if "tradingDate" not in df.columns:
-        raise ValueError("Thiếu cột tradingDate")
-    df = df.rename(columns={
-        "tradingDate": "Date", "open": "Open", "high": "High",
-        "low": "Low", "close": "Close", "volume": "Volume",
-    })
-    df = df[["Date", "Open", "High", "Low", "Close", "Volume"]].copy()
-    df["Date"] = pd.to_datetime(df["Date"])
-    for c in ["Open", "High", "Low", "Close", "Volume"]:
-        df[c] = pd.to_numeric(df[c], errors="coerce")
-    df = (df.dropna().drop_duplicates(subset=["Date"])
-            .sort_values("Date").reset_index(drop=True))
-    df = df[df["Volume"] > 0].reset_index(drop=True)
-    return df
-
-
-# ============ PUBLIC ============
 def load_stock(ticker):
-    """Load: cache → TCBS → cache_cũ."""
-    cached = _load_cache(ticker)
-    if cached is not None and len(cached) >= 300:
-        return cached
+    """Load daily KBS → VCI. Set attrs['source']."""
+    if not VNSTOCK_OK:
+        return None
 
-    try:
-        df = _load_tcbs(ticker)
-        if df is not None and len(df) >= 300:
-            df.attrs["source"] = "TCBS"
-            _save_cache(ticker, df)
-            time.sleep(0.3)  # lịch sự với server
-            return df
-        else:
-            print(f"  {ticker}: TCBS trả {len(df) if df is not None else 0} bar (<300)")
-    except Exception as e:
-        print(f"  {ticker}: TCBS lỗi — {str(e)[:80]}")
+    end_date = datetime.now().strftime("%Y-%m-%d")
 
-    path = _cache_path(ticker)
-    if os.path.exists(path):
+    for source in ["KBS", "VCI"]:
         try:
-            df = pd.read_csv(path, parse_dates=["Date"])
-            df.attrs["source"] = "cache_old"
-            print(f"  {ticker}: dùng cache cũ ({len(df)} bar)")
+            q = Quote(symbol=ticker, source=source)
+            df = q.history(start=DATA_START, end=end_date, interval="1D")
+
+            if df is None or len(df) < 300:
+                print(f"  [{ticker}][{source}] chỉ {len(df) if df is not None else 0} nến")
+                continue
+
+            df.columns = [str(c).strip().lower() for c in df.columns]
+            rename = {
+                "time": "Date", "date": "Date",
+                "open": "Open", "high": "High",
+                "low": "Low", "close": "Close", "volume": "Volume",
+            }
+            df = df.rename(columns={k: v for k, v in rename.items() if k in df.columns})
+
+            need = ["Date", "Open", "High", "Low", "Close", "Volume"]
+            if not all(c in df.columns for c in need):
+                continue
+
+            df = df[need].copy()
+            df["Date"] = pd.to_datetime(df["Date"])
+            for c in ["Open", "High", "Low", "Close", "Volume"]:
+                df[c] = pd.to_numeric(df[c], errors="coerce")
+
+            df = (df.dropna()
+                    .drop_duplicates(subset=["Date"])
+                    .sort_values("Date")
+                    .reset_index(drop=True))
+            df = df[df["Volume"] > 0].reset_index(drop=True)
+
+            if len(df) < 300:
+                continue
+
+            df.attrs["source"] = source
+            time.sleep(0.5)
             return df
-        except Exception:
-            pass
+
+        except Exception as e:
+            print(f"  [{ticker}][{source}] Fail: {str(e)[:100]}")
+            continue
 
     return None
 
 
-# ============ INDICATORS ============
 def add_indicators(df):
     """Wilder's-ADX — chuẩn quốc tế."""
     df = df.copy()
@@ -144,7 +105,7 @@ def add_indicators(df):
 
 
 def add_signal(df, adx_min=22):
-    """Luật A1i+50 — dùng config V3."""
+    """Luật V3 — dùng config."""
     from config_core_msra import (
         VOL_RATIO_MIN, ROC10_MIN, MACD_HIST_MIN,
     )
@@ -152,9 +113,9 @@ def add_signal(df, adx_min=22):
     df["Signal"] = (
         (df["VolumeRatio"] >= VOL_RATIO_MIN) &
         (df["ROC10"] >= ROC10_MIN) &
-        (df["MACD_Hist"] >= MACD_HIST_MIN) &
+        (df["MACD_HIST_MIN"] if False else df["MACD_Hist"] >= MACD_HIST_MIN) &
         (df["ADX14"] >= adx_min) &
         (df["Close"] > df["MA200"]) &
         (df["Close"] > df["MA50"])
     )
-    return df 
+    return df
