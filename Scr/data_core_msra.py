@@ -1,17 +1,17 @@
 # ============================================================
-# CORE-MSRA DATA — TCBS API (không rate limit) + indicators
+# CORE-MSRA DATA V3 — TCBS API + cache + fallback
 # ============================================================
 import os
 import time
-import json
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
+import requests
+from datetime import datetime
 from config_core_msra import DATA_START
 
 # ============ CACHE ============
 CACHE_DIR = "cache_data"
-CACHE_TTL_HOURS = 4  # Cache 4 giờ
+CACHE_TTL_HOURS = 4
 
 
 def _cache_path(ticker):
@@ -48,70 +48,52 @@ def _load_tcbs(ticker):
     start_ts = int(pd.Timestamp(DATA_START).timestamp())
     end_ts = int(pd.Timestamp(datetime.now()).timestamp())
     params = {
-        "ticker": ticker,
-        "type": "stock",
-        "resolution": "D",
-        "from": start_ts,
-        "to": end_ts,
+        "ticker": ticker, "type": "stock", "resolution": "D",
+        "from": start_ts, "to": end_ts,
     }
-    headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; CORE-MSRA/1.0)",
-        "Accept": "application/json",
-    }
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; CORE-MSRA/1.0)"}
     r = requests.get(url, params=params, headers=headers, timeout=30)
     r.raise_for_status()
     payload = r.json()
-
     data = payload.get("data") or []
     if not data:
         raise ValueError(f"TCBS trả rỗng cho {ticker}")
-
     df = pd.DataFrame(data)
-    # TCBS dùng: tradingDate, open, high, low, close, volume
     if "tradingDate" not in df.columns:
         raise ValueError("Thiếu cột tradingDate")
     df = df.rename(columns={
-        "tradingDate": "Date",
-        "open": "Open", "high": "High", "low": "Low",
-        "close": "Close", "volume": "Volume",
+        "tradingDate": "Date", "open": "Open", "high": "High",
+        "low": "Low", "close": "Close", "volume": "Volume",
     })
     df = df[["Date", "Open", "High", "Low", "Close", "Volume"]].copy()
     df["Date"] = pd.to_datetime(df["Date"])
     for c in ["Open", "High", "Low", "Close", "Volume"]:
         df[c] = pd.to_numeric(df[c], errors="coerce")
-    df = (df.dropna()
-            .drop_duplicates(subset=["Date"])
-            .sort_values("Date")
-            .reset_index(drop=True))
+    df = (df.dropna().drop_duplicates(subset=["Date"])
+            .sort_values("Date").reset_index(drop=True))
     df = df[df["Volume"] > 0].reset_index(drop=True)
     return df
 
 
-# ============ PUBLIC API ============
+# ============ PUBLIC ============
 def load_stock(ticker):
-    """
-    Load daily: cache → TCBS → (fallback nếu cần).
-    Signature giữ nguyên để main.py không phải sửa.
-    """
-    # 1. Cache
+    """Load: cache → TCBS → cache_cũ."""
     cached = _load_cache(ticker)
     if cached is not None and len(cached) >= 300:
         return cached
 
-    # 2. TCBS
     try:
         df = _load_tcbs(ticker)
         if df is not None and len(df) >= 300:
             df.attrs["source"] = "TCBS"
             _save_cache(ticker, df)
-            time.sleep(0.5)  # Lịch sự với server
+            time.sleep(0.3)  # lịch sự với server
             return df
         else:
-            print(f"  {ticker}: TCBS trả {len(df) if df is not None else 0} bar, cần ≥300")
+            print(f"  {ticker}: TCBS trả {len(df) if df is not None else 0} bar (<300)")
     except Exception as e:
         print(f"  {ticker}: TCBS lỗi — {str(e)[:80]}")
 
-    # 3. Fallback: dùng cache cũ nếu có (dù hết TTL)
     path = _cache_path(ticker)
     if os.path.exists(path):
         try:
@@ -125,9 +107,7 @@ def load_stock(ticker):
     return None
 
 
-# ============================================================
-# INDICATORS — giữ nguyên, đã đúng
-# ============================================================
+# ============ INDICATORS ============
 def add_indicators(df):
     """Wilder's-ADX — chuẩn quốc tế."""
     df = df.copy()
@@ -164,14 +144,17 @@ def add_indicators(df):
 
 
 def add_signal(df, adx_min=22):
-    """Luật A1i+50 — giữ nguyên."""
+    """Luật A1i+50 — dùng config V3."""
+    from config_core_msra import (
+        VOL_RATIO_MIN, ROC10_MIN, MACD_HIST_MIN,
+    )
     df = df.copy()
     df["Signal"] = (
-        (df["VolumeRatio"] >= 1.5) &
-        (df["ROC10"] >= 4.0) &
-        (df["MACD_Hist"] >= 0.0) &
+        (df["VolumeRatio"] >= VOL_RATIO_MIN) &
+        (df["ROC10"] >= ROC10_MIN) &
+        (df["MACD_Hist"] >= MACD_HIST_MIN) &
         (df["ADX14"] >= adx_min) &
         (df["Close"] > df["MA200"]) &
         (df["Close"] > df["MA50"])
     )
-    return df
+    return df 
