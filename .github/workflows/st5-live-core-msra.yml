@@ -11,7 +11,7 @@ on:
     - cron: '30 7 * * 1-5'   # 14:30 VN
 
 jobs:
-  run-msra:
+  run-st5-live-core-msra:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
