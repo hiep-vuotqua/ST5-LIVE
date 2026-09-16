@@ -8,7 +8,7 @@ CORE_DGW = [
     "SHS", "BSR", "MCG", "SSI", "VHC",
     "VGI", "TA9", "SCL", "CSV", "C69",
     "LPB", "VND", "VTP", "NAG", "SJS",
-    "DCM", "DPM", "BCM", "TVS", "GVR",
+    "DCM", "DPM", "BCM", "TVS", "GVR", "DGW"
 ]
 
 # ===== DGW FROZEN RULE =====
