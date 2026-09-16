@@ -118,5 +118,13 @@
     "buy_date": null,
     "buy_price": null,
     "last_processed_date": "2026-09-15"
+  },
+  "DGW": {
+    "pending_buy": false,
+    "signal_date": null,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_processed_date": "2026-09-15"
   }
 }
