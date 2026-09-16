@@ -59,11 +59,13 @@ def load_state():
         return {}
 
     try:
+
         with open(
             STATE_FILE,
             "r",
             encoding="utf-8"
         ) as f:
+
             return json.load(f)
 
     except Exception as e:
@@ -82,6 +84,7 @@ def save_state(state):
     )
 
     if folder:
+
         os.makedirs(
             folder,
             exist_ok=True
@@ -292,7 +295,10 @@ def add_indicators(df):
     )
 
     tr_ewm = (
-        pd.Series(tr, index=df.index)
+        pd.Series(
+            tr,
+            index=df.index
+        )
         .ewm(
             alpha=1 / 14,
             adjust=False
@@ -343,7 +349,10 @@ def add_indicators(df):
     dx = (
         100
         * (plus_di - minus_di).abs()
-        / di_sum.replace(0, np.nan)
+        / di_sum.replace(
+            0,
+            np.nan
+        )
     )
 
     adx = (
@@ -385,7 +394,9 @@ def add_vni_filter(df, vni):
 
     vni["MA20"] = (
         vni["Close"]
-        .rolling(VNI_MA_PERIOD)
+        .rolling(
+            VNI_MA_PERIOD
+        )
         .mean()
     )
 
@@ -421,7 +432,7 @@ def add_vni_filter(df, vni):
 
 
 # ============================================================
-# SIGNAL
+# DGW SIGNAL
 # ============================================================
 
 def core_dgw_signal(row):
@@ -437,6 +448,7 @@ def core_dgw_signal(row):
     for col in required:
 
         if pd.isna(row[col]):
+
             return False
 
     return (
@@ -457,7 +469,7 @@ def core_dgw_signal(row):
 
 
 # ============================================================
-# PROCESS TICKER
+# PROCESS ONE TICKER
 # ============================================================
 
 def process_ticker(
@@ -483,7 +495,8 @@ def process_ticker(
         if df is None or df.empty:
 
             print(
-                f"{ticker}: Không có dữ liệu."
+                f"{ticker}: "
+                f"Không có dữ liệu."
             )
 
             return
@@ -516,7 +529,7 @@ def process_ticker(
 
             print(
                 f"{ticker}: "
-                f"Không đủ dữ liệu indicator."
+                f"Không đủ dữ liệu."
             )
 
             return
@@ -528,16 +541,23 @@ def process_ticker(
 
         last = df.iloc[-1]
 
-        signal_date = pd.Timestamp(
+        last_date = pd.Timestamp(
             last["Date"]
-        ).strftime("%Y-%m-%d")
+        )
+
+        signal_date = (
+            last_date.strftime(
+                "%Y-%m-%d"
+            )
+        )
 
         signal = bool(
             last["SIGNAL"]
         )
 
         print(
-            f"Date        : {signal_date}"
+            f"Date        : "
+            f"{signal_date}"
         )
 
         print(
@@ -578,6 +598,8 @@ def process_ticker(
         ticker_state = state.get(
             ticker,
             {
+                "pending_buy": False,
+                "signal_date": None,
                 "in_position": False,
                 "buy_date": None,
                 "buy_price": None,
@@ -585,111 +607,164 @@ def process_ticker(
             }
         )
 
-        # ----------------------------------------------------
-        # DUPLICATE
-        # ----------------------------------------------------
+        # ====================================================
+        # 1. PENDING BUY
+        # ====================================================
+        # Signal ngày T.
+        # Khớp BUY tại OPEN ngày đầu tiên > T.
+        # ====================================================
 
-        if (
-            ticker_state.get(
-                "last_processed_date"
-            )
-            == signal_date
-        ):
-
-            print(
-                f"{ticker}: "
-                f"Đã xử lý {signal_date}."
-            )
-
-            state[ticker] = ticker_state
-
-            return
-
-        # ----------------------------------------------------
-        # NO POSITION
-        # ----------------------------------------------------
-
-        if not ticker_state.get(
-            "in_position",
+        if ticker_state.get(
+            "pending_buy",
             False
         ):
 
-            if signal:
+            pending_date = ticker_state.get(
+                "signal_date"
+            )
 
-                ticker_state[
-                    "in_position"
-                ] = True
+            if pending_date:
 
-                ticker_state[
-                    "buy_date"
-                ] = signal_date
-
-                ticker_state[
-                    "buy_price"
-                ] = None
-
-                message = (
-                    f"🟢 {TELEGRAM_TITLE}\n"
-                    f"BUY SIGNAL: {ticker}\n\n"
-                    f"Signal date: {signal_date}\n"
-                    f"Action: BUY NEXT OPEN\n"
-                    f"Close: {last['Close']:.2f}\n"
-                    f"VolR: {last['VolumeRatio']:.2f}\n"
-                    f"ROC10: {last['ROC10']:.2f}\n"
-                    f"MACD Hist: "
-                    f"{last['MACD_HIST']:.4f}\n"
-                    f"ADX14: {last['ADX14']:.2f}\n"
-                    f"VNI > MA20: YES"
+                pending_dt = pd.Timestamp(
+                    pending_date
                 )
 
-                send_telegram(
-                    message
-                )
+                next_rows = df[
+                    df["Date"]
+                    > pending_dt
+                ]
 
-                print(
-                    f"{ticker}: "
-                    f"BUY SIGNAL"
-                )
+                if not next_rows.empty:
 
-            else:
+                    fill_row = (
+                        next_rows.iloc[0]
+                    )
 
-                print(
-                    f"{ticker}: "
-                    f"Không có BUY."
-                )
+                    buy_date = pd.Timestamp(
+                        fill_row["Date"]
+                    )
 
-        # ----------------------------------------------------
-        # IN POSITION
-        # ----------------------------------------------------
+                    buy_price = float(
+                        fill_row["Open"]
+                    )
 
-        else:
+                    ticker_state[
+                        "pending_buy"
+                    ] = False
+
+                    ticker_state[
+                        "signal_date"
+                    ] = None
+
+                    ticker_state[
+                        "in_position"
+                    ] = True
+
+                    ticker_state[
+                        "buy_date"
+                    ] = buy_date.strftime(
+                        "%Y-%m-%d"
+                    )
+
+                    ticker_state[
+                        "buy_price"
+                    ] = buy_price
+
+                    print(
+                        f"{ticker}: "
+                        f"BUY FILLED"
+                    )
+
+                    print(
+                        f"Buy date : "
+                        f"{ticker_state['buy_date']}"
+                    )
+
+                    print(
+                        f"Buy open : "
+                        f"{buy_price:.2f}"
+                    )
+
+                    message = (
+                        f"🟢 {TELEGRAM_TITLE}\n"
+                        f"BUY FILLED: {ticker}\n\n"
+                        f"Buy date: "
+                        f"{ticker_state['buy_date']}\n"
+                        f"Buy Open: {buy_price:.2f}\n"
+                        f"Signal date: "
+                        f"{pending_date}"
+                    )
+
+                    send_telegram(
+                        message
+                    )
+
+                else:
+
+                    print(
+                        f"{ticker}: "
+                        f"Pending BUY — "
+                        f"chưa có phiên kế tiếp."
+                    )
+
+                    ticker_state[
+                        "last_processed_date"
+                    ] = signal_date
+
+                    state[ticker] = (
+                        ticker_state
+                    )
+
+                    return
+
+        # ====================================================
+        # 2. IN POSITION
+        # ====================================================
+
+        if ticker_state.get(
+            "in_position",
+            False
+        ):
 
             buy_date = ticker_state.get(
                 "buy_date"
             )
 
-            if buy_date:
+            if not buy_date:
 
-                buy_dt = pd.Timestamp(
-                    buy_date
+                print(
+                    f"{ticker}: "
+                    f"IN POSITION nhưng "
+                    f"thiếu buy_date."
                 )
 
-                hold_sessions = int(
-                    (
-                        df["Date"]
-                        > buy_dt
-                    ).sum()
+                state[ticker] = (
+                    ticker_state
                 )
 
-            else:
+                return
 
-                hold_sessions = 0
+            buy_dt = pd.Timestamp(
+                buy_date
+            )
+
+            hold_sessions = int(
+                (
+                    df["Date"]
+                    > buy_dt
+                ).sum()
+            )
 
             print(
                 f"{ticker}: "
                 f"IN POSITION | "
+                f"Buy={buy_date} | "
                 f"Hold={hold_sessions}"
             )
+
+            # ------------------------------------------------
+            # EXIT
+            # ------------------------------------------------
 
             if (
                 not signal
@@ -698,30 +773,68 @@ def process_ticker(
                 >= MIN_HOLD_DAYS
             ):
 
+                sell_price = float(
+                    last["Close"]
+                )
+
+                buy_price = float(
+                    ticker_state[
+                        "buy_price"
+                    ]
+                )
+
+                gross_return = (
+                    (
+                        sell_price
+                        / buy_price
+                    )
+                    - 1
+                ) * 100
+
+                net_return = (
+                    gross_return
+                    - 0.40
+                )
+
                 message = (
                     f"🔴 {TELEGRAM_TITLE}\n"
                     f"SELL SIGNAL: {ticker}\n\n"
-                    f"Signal date: {signal_date}\n"
+                    f"Sell date: {signal_date}\n"
+                    f"Sell Close: "
+                    f"{sell_price:.2f}\n"
+                    f"Buy date: {buy_date}\n"
+                    f"Buy Open: "
+                    f"{buy_price:.2f}\n"
                     f"Hold sessions: "
                     f"{hold_sessions}\n"
-                    f"Close: {last['Close']:.2f}\n"
-                    f"VolR: "
-                    f"{last['VolumeRatio']:.2f}\n"
-                    f"ROC10: "
-                    f"{last['ROC10']:.2f}\n"
-                    f"MACD Hist: "
-                    f"{last['MACD_HIST']:.4f}\n"
-                    f"ADX14: "
-                    f"{last['ADX14']:.2f}\n"
-                    f"VNI > MA20: "
-                    f"{'YES' if bool(last['VNI_FILTER']) else 'NO'}"
+                    f"Gross Return: "
+                    f"{gross_return:.2f}%\n"
+                    f"Net Return: "
+                    f"{net_return:.2f}%"
                 )
 
                 send_telegram(
                     message
                 )
 
+                print(
+                    f"{ticker}: "
+                    f"SELL SIGNAL"
+                )
+
+                print(
+                    f"Gross Return: "
+                    f"{gross_return:.2f}%"
+                )
+
+                print(
+                    f"Net Return: "
+                    f"{net_return:.2f}%"
+                )
+
                 ticker_state = {
+                    "pending_buy": False,
+                    "signal_date": None,
                     "in_position": False,
                     "buy_date": None,
                     "buy_price": None,
@@ -729,23 +842,101 @@ def process_ticker(
                         signal_date,
                 }
 
-                print(
-                    f"{ticker}: "
-                    f"SELL SIGNAL"
+                state[ticker] = (
+                    ticker_state
                 )
 
-            else:
+                return
 
-                print(
-                    f"{ticker}: "
-                    f"Giữ vị thế."
-                )
+            print(
+                f"{ticker}: "
+                f"GIỮ VỊ THẾ."
+            )
+
+        # ====================================================
+        # 3. NO POSITION → NEW BUY SIGNAL
+        # ====================================================
+
+        if not ticker_state.get(
+            "in_position",
+            False
+        ):
+
+            if not ticker_state.get(
+                "pending_buy",
+                False
+            ):
+
+                if signal:
+
+                    ticker_state[
+                        "pending_buy"
+                    ] = True
+
+                    ticker_state[
+                        "signal_date"
+                    ] = signal_date
+
+                    ticker_state[
+                        "in_position"
+                    ] = False
+
+                    ticker_state[
+                        "buy_date"
+                    ] = None
+
+                    ticker_state[
+                        "buy_price"
+                    ] = None
+
+                    message = (
+                        f"🟢 {TELEGRAM_TITLE}\n"
+                        f"BUY SIGNAL: {ticker}\n\n"
+                        f"Signal date: "
+                        f"{signal_date}\n"
+                        f"Action: "
+                        f"BUY NEXT OPEN\n"
+                        f"Close: "
+                        f"{last['Close']:.2f}\n"
+                        f"VolR: "
+                        f"{last['VolumeRatio']:.2f}\n"
+                        f"ROC10: "
+                        f"{last['ROC10']:.2f}\n"
+                        f"MACD Hist: "
+                        f"{last['MACD_HIST']:.4f}\n"
+                        f"ADX14: "
+                        f"{last['ADX14']:.2f}\n"
+                        f"VNI > MA20: YES"
+                    )
+
+                    send_telegram(
+                        message
+                    )
+
+                    print(
+                        f"{ticker}: "
+                        f"BUY SIGNAL → "
+                        f"NEXT OPEN"
+                    )
+
+                else:
+
+                    print(
+                        f"{ticker}: "
+                        f"Không có BUY."
+                    )
+
+        # ====================================================
+        # 4. SAVE PROCESS DATE
+        # ====================================================
 
         ticker_state[
             "last_processed_date"
         ] = signal_date
 
-        state[ticker] = ticker_state
+        state[ticker] = (
+            ticker_state
+        )
 
     except Exception as e:
 
@@ -768,15 +959,23 @@ def main():
         f"{now.strftime('%Y-%m-%d %H:%M:%S %z')} ====="
     )
 
-    # TEST MODE:
-    # ngoài giờ vẫn chạy để kiểm tra dữ liệu.
+    # ========================================================
+    # LIVE MODE — NGOÀI GIỜ THÌ BỎ QUA
+    # ========================================================
+
     if not is_trading_session(now):
 
         print(
             f"Ngoài giờ giao dịch "
             f"({now.strftime('%H:%M')}) "
-            f"— TEST MODE, vẫn chạy"
+            f"— bỏ qua."
         )
+
+        return
+
+    # ========================================================
+    # STATE
+    # ========================================================
 
     state = load_state()
 
@@ -790,9 +989,9 @@ def main():
         ", ".join(CORE_DGW)
     )
 
-    # --------------------------------------------------------
+    # ========================================================
     # VNINDEX
-    # --------------------------------------------------------
+    # ========================================================
 
     print()
     print(
@@ -815,9 +1014,9 @@ def main():
         f"{len(vni)}"
     )
 
-    # --------------------------------------------------------
-    # STOCKS
-    # --------------------------------------------------------
+    # ========================================================
+    # PROCESS 20 STOCKS
+    # ========================================================
 
     for i, ticker in enumerate(
         CORE_DGW,
@@ -851,40 +1050,50 @@ def main():
                 DELAY_BETWEEN_TICKERS
             )
 
-    # --------------------------------------------------------
+    # ========================================================
     # FINAL SAVE
-    # --------------------------------------------------------
+    # ========================================================
 
     save_state(
         state
     )
 
-    # --------------------------------------------------------
+    # ========================================================
     # SUMMARY
-    # --------------------------------------------------------
+    # ========================================================
 
-    in_position = []
+    pending = []
+    positions = []
 
     for ticker in CORE_DGW:
 
-        ticker_state = state.get(
+        s = state.get(
             ticker,
             {}
         )
 
-        if ticker_state.get(
+        if s.get(
+            "pending_buy",
+            False
+        ):
+
+            pending.append(
+                ticker
+            )
+
+        if s.get(
             "in_position",
             False
         ):
 
-            in_position.append(
+            positions.append(
                 ticker
             )
 
     print()
     print("=" * 70)
     print(
-        "CORE-DGW FINISHED"
+        "CORE-DGW FINAL LIVE"
     )
     print("=" * 70)
 
@@ -894,26 +1103,36 @@ def main():
     )
 
     print(
-        f"State file: "
-        f"{STATE_FILE}"
+        f"Pending BUY: "
+        f"{len(pending)}"
     )
+
+    if pending:
+
+        print(
+            "Pending:",
+            ", ".join(pending)
+        )
 
     print(
         f"In position: "
-        f"{len(in_position)}"
+        f"{len(positions)}"
     )
 
-    if in_position:
+    if positions:
 
         print(
             "Positions:",
-            ", ".join(
-                in_position
-            )
+            ", ".join(positions)
         )
+
+    print(
+        f"State file: "
+        f"{STATE_FILE}"
+    )
 
     print("=" * 70)
 
 
 if __name__ == "__main__":
-    main() 
+    main()
