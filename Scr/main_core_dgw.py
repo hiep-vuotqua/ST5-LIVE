@@ -690,14 +690,8 @@ def main():
         )
     )
 
-    if not in_session:
-
-        print(
-            f"Ngoài giờ giao dịch "
-            f"({t}) — bỏ qua"
-        )
-
-        return
+    if not is_trading_session(now):
+    print(f" Ngoài giờ giao dịch ({now.strftime('%H:%M')}) — TEST MODE, vẫn chạy")
 
     # ========================================================
     # STATE
