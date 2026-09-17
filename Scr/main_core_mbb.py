@@ -1,4 +1,9 @@
 # Scr/main_core_mbb.py
+# Cập nhật 17/09/2026:
+#   - FIX entry_date: dùng bar date (row["Date"]) thay vì now
+#     → tránh lệch 1 phiên khi cron 14:45 (bar hôm nay chưa có)
+#   - Telegram rõ hơn: ghi rõ "Ngày bar" vs "Chạy bot"
+
 import os
 import json
 import time
@@ -88,11 +93,13 @@ def build_signal_message(ticker, action, row, now, hold_info=""):
     roc = float(row["ROC10"])
     macd = float(row["MACD_Hist"])
     adx = float(row["ADX14"])
+    bar_date = pd.to_datetime(row["Date"]).strftime("%d/%m/%Y")
     return (
         f"🚨 ST5 CORE-MBB {action}\n\n"
         f"Mã: {ticker}\n"
         f"Giá adjusted: {price:.2f}\n"
-        f"Thời gian: {now.strftime('%d/%m/%Y %H:%M:%S')}\n\n"
+        f"Ngày bar: {bar_date}\n"
+        f"Chạy bot: {now.strftime('%d/%m/%Y %H:%M:%S')}\n\n"
         f"Volume Ratio: {vr:.2f} {'✅' if vr > VOLUME_RATIO_MIN else '❌'}\n"
         f"ROC10: {roc:.2f}% {'✅' if roc > ROC10_MIN else '❌'}\n"
         f"MACD Hist: {macd:.4f} {'✅' if macd > MACD_HIST_MIN else '❌'}\n"
@@ -209,21 +216,26 @@ def process_ticker(ticker, state, now):
         )
         print(f"Signal={signal} | Position={old_position}")
 
-        # BUY
+        # ===== BUY =====
         if signal and not old_position:
             print("🟢 BUY SIGNAL")
+            # FIX: dùng bar date (row["Date"]) thay vì now
+            bar_ts = pd.to_datetime(row["Date"])
+            bar_date_str = bar_ts.strftime("%Y-%m-%d")
+            bar_time_str = bar_ts.strftime("%H:%M:%S")
+
             message = build_signal_message(ticker, "BUY", row, now)
             if send_telegram(message):
                 state[ticker] = {
                     "position": True,
-                    "entry_date": now.strftime("%Y-%m-%d"),
-                    "entry_time": now.strftime("%H:%M:%S"),
+                    "entry_date": bar_date_str,
+                    "entry_time": bar_time_str,
                 }
                 save_state(state)
-                print(f"💾 BUY STATE SAVED: {ticker}")
+                print(f"💾 BUY STATE SAVED: {ticker} | entry_date={bar_date_str}")
             return True
 
-        # SELL
+        # ===== SELL =====
         if old_position and not signal:
             can_sell, reason = can_sell_min_hold(df, entry_date, now)
             print(f"Min hold: {can_sell} | {reason}")
