@@ -1,5 +1,6 @@
 # Scr/config_core_mbb.py
 # Cấu hình riêng cho CORE-MBB LIVE
+# Cập nhật 17/09/2026: Thêm MBB vào nhóm Bank (PASS backtest)
 
 CORE_MBB = [
     # RealEstate
@@ -15,7 +16,7 @@ CORE_MBB = [
     # Transport
     "VEA", "VTO", "HVN",
     # Bank
-    "CTG", "HDB", "MSB",
+    "CTG", "HDB", "MSB", "MBB",
     # Industrial
     "DVP", "TTN",
     # Agriculture
