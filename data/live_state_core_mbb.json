@@ -43,5 +43,15 @@
     "position": true,
     "entry_date": "2026-09-17",
     "entry_time": "10:35:16"
+  },
+  "IMP": {
+    "position": true,
+    "entry_date": "2026-09-18",
+    "entry_time": "07:00:00"
+  },
+  "AGP": {
+    "position": true,
+    "entry_date": "2026-09-18",
+    "entry_time": "07:00:00"
   }
 }
