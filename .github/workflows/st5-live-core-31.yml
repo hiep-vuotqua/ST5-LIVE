@@ -1,0 +1,46 @@
+name: ST5 LIVE CORE-31
+
+on:
+  schedule:
+    - cron: "45 7 * * 1-5"   # 14:45 VN
+    - cron: "15 8 * * 1-5"   # 15:15 VN
+  workflow_dispatch:
+
+concurrency:
+  group: st5-live-core-31
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -q -r requirements.txt
+
+      - name: Run ST5 CORE-31
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          cd Scr
+          python main_core_31.py
+
+      - name: Commit state
+        run: |
+          git config user.name "ST5 Bot"
+          git config user.email "bot@st5.local"
+          git add data/live_state_core_31.json
+          git diff --staged --quiet || git commit -m "Update CORE-31 state $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push 
