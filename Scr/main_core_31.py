@@ -1,4 +1,4 @@
-"""CORE-31 engine — variant B."""
+"""CORE-30 engine — variant B."""
 
 import os
 import json
@@ -8,12 +8,12 @@ import pytz
 import pandas as pd
 import requests
 
-from config_core_31 import (
-    CORE_31, VOLUME_RATIO_MIN, ROC10_MIN, MACD_HIST_MIN, ADX14_MIN,
+from config_core_30 import (
+    CORE_30, VOLUME_RATIO_MIN, ROC10_MIN, MACD_HIST_MIN, ADX14_MIN,
     USE_MA200, USE_MA50, MIN_HOLD_DAYS, TIMEZONE, STATE_FILE,
     TELEGRAM_TITLE, FEE_PER_ROUND, DELAY_BETWEEN_TICKERS
 )
-from data_core_31 import get_intraday_data
+from data_core_30 import get_intraday_data
 from indicators import add_v14_indicators
 
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
@@ -26,7 +26,7 @@ def load_state():
     if os.path.exists(STATE_FILE):
         with open(STATE_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-    print(f"  [load_state] Không tồn tại, trả về rỗng")
+    print(f"  [load_state] File không tồn tại, trả về rỗng")
     return {}
 
 
@@ -167,7 +167,7 @@ def process_ticker(ticker, state, tz):
 def main():
     tz = pytz.timezone(TIMEZONE)
     now = datetime.now(tz)
-    print(f"===== ST5 CORE-31 — {now.strftime('%Y-%m-%d %H:%M:%S %Z')} =====")
+    print(f"===== ST5 CORE-30 — {now.strftime('%Y-%m-%d %H:%M:%S %Z')} =====")
 
     if now.weekday() >= 5:
         print("Cuối tuần — bỏ qua")
@@ -176,18 +176,18 @@ def main():
     state = load_state()
 
     n_buy = n_sell = 0
-    for i, ticker in enumerate(CORE_31, 1):
+    for i, ticker in enumerate(CORE_30, 1):
         old_pos = state.get(ticker, {}).get("in_position", False)
         state = process_ticker(ticker, state, tz)
         new_pos = state.get(ticker, {}).get("in_position", False)
         if not old_pos and new_pos: n_buy += 1
         if old_pos and not new_pos: n_sell += 1
-        if i < len(CORE_31):
+        if i < len(CORE_30):
             time.sleep(DELAY_BETWEEN_TICKERS)
 
     save_state(state)
-    print(f"\n===== DONE — BUY: {n_buy}, SELL: {n_sell}, Total: {len(CORE_31)} =====")
+    print(f"\n===== DONE — BUY: {n_buy}, SELL: {n_sell}, Total: {len(CORE_30)} =====")
 
 
 if __name__ == "__main__":
-    main()
+    main() 
