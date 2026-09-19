@@ -31,9 +31,7 @@ def get_intraday_data(ticker, days=120):
             for c in ["Open","High","Low","Close","Volume"]:
                 df[c] = pd.to_numeric(df[c], errors="coerce")
             df = df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
-            flat = (df["Open"]==df["High"]) & (df["High"]==df["Low"]) & (df["Low"]==df["Close"])
-            df = df[~flat].reset_index(drop=True)
-            df = df[df["Volume"] > 0].reset_index(drop=True)
+            # KHÔNG filter flat / Volume=0 — giữ nguyên Wilder's EWMA
             if len(df) < 30:
                 continue
             print(f"  [{ticker}][{source}] OK — {len(df)} nến, cuối {df.iloc[-1]['Date'].date()}")
