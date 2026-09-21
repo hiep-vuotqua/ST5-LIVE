@@ -1,1 +1,86 @@
-{}
+{
+  "ABB": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "HCM": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "NKG": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "IDJ": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "NVL": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "SSI": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "CTS": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "CTR": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "FRT": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "NHA": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "VNA": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "LGL": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  }
+}
