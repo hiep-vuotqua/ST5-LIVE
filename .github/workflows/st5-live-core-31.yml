@@ -2,9 +2,8 @@ name: ST5 LIVE CORE-30
 
 on:
   schedule:
-    - cron: "0 4 * * 1-5"    # 11:00 VN — cuối sáng
-    - cron: "30 6 * * 1-5"   # 13:30 VN — đầu chiều
-    - cron: "0 7 * * 1-5"    # 14:00 VN — giữa chiều
+    - cron: "10 4 * * 1-5"    # 11:10 VN
+    - cron: "20 7 * * 1-5"    # 14:20 VN
   workflow_dispatch:
 
 concurrency:
