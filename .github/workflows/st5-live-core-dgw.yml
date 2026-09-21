@@ -2,7 +2,7 @@ name: ST5 LIVE CORE-DGW
 
 on:
   schedule:
-    - cron: "20 4 * * 1-5"    # 11:20 VN
+    - cron: "20 3 * * 1-5"    # 10:20 VN
     - cron: "10 7 * * 1-5"    # 14:10 VN
   workflow_dispatch:
 
