@@ -1,1 +1,67 @@
-{}
+{
+  "SSI": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "FRT": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "MWG": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "IMP": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "DVP": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "BSR": {
+    "in_position": true,
+    "buy_date": "2026-09-21",
+    "buy_price": 31.55,
+    "alerted_buy_dates": [
+      "2026-09-21"
+    ],
+    "alerted_sell_dates": []
+  },
+  "SCI": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "CTP": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "APG": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  }
+}
