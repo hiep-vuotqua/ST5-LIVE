@@ -1,10 +1,6 @@
-# Scr/main_core_tch.py
-# Engine LIVE cho CORE-TCH — daily 1D
-# Đọc config từ config_core_tch.py
+"""CORE-TCH engine — 2 cron/ngày (SÁNG 11:00 + CHIỀU 14:00 VN)."""
 
-import os
-import json
-import time
+import os, json, time
 from datetime import datetime
 import pytz
 import pandas as pd
@@ -19,12 +15,10 @@ from config_core_tch import (
 from data_core_tch import get_intraday_data
 from indicators import add_v14_indicators
 
-
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID   = os.environ.get("TELEGRAM_CHAT_ID", "")
 
 
-# ===== STATE =====
 def load_state():
     abs_path = os.path.abspath(STATE_FILE)
     print(f"  [load_state] Reading from: {abs_path}")
@@ -43,8 +37,8 @@ def save_state(state):
         json.dump(state, f, indent=2, ensure_ascii=False, default=str)
 
 
-# ===== SIGNAL =====
 def core_tch_signal(df):
+    """Signal TCH — VolR/ROC10/MACD/ADX (không MA200/MA50)."""
     return (
         (df["VolumeRatio"] >= VOLUME_RATIO_MIN) &
         (df["ROC10"]       >= ROC10_MIN) &
@@ -53,120 +47,119 @@ def core_tch_signal(df):
     )
 
 
-# ===== TELEGRAM =====
+def get_session(now):
+    h, m = now.hour, now.minute
+    if h < 12:
+        return "SÁNG"        # cron 11:00 VN
+    return "CHIỀU"           # cron 14:00 VN
+
+
 def send_telegram(msg):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         print("[WARN] Telegram chưa cấu hình")
         return
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     try:
-        requests.post(url, json={
+        r = requests.post(url, json={
             "chat_id": TELEGRAM_CHAT_ID,
             "text": f"[{TELEGRAM_TITLE}] {msg}",
             "parse_mode": "HTML"
         }, timeout=10)
+        if r.status_code != 200:
+            print(f"[WARN] Telegram HTTP {r.status_code}")
     except Exception as e:
         print(f"[ERROR] Telegram: {e}")
 
 
-# ===== XỬ LÝ 1 MÃ =====
-def process_ticker(ticker, state, tz):
+def process_ticker(ticker, state, tz, session, now):
     try:
         df = get_intraday_data(ticker, days=400)
     except Exception as e:
         print(f"  [{ticker}] ERROR data: {e}")
         return state
 
-    if df is None or len(df) < 30:
-        print(f"  [{ticker}] SKIP — không đủ dữ liệu")
+    if df is None or len(df) < 250:
+        print(f"  [{ticker}] SKIP — {len(df)} nến")
         return state
 
-    df = add_v14_indicators(df)
-    df["Signal"] = core_tch_signal(df)
+    df = add_v14_indicators(df).dropna().reset_index(drop=True)
+    if len(df) == 0:
+        return state
 
+    df["Signal"] = core_tch_signal(df)
     last = df.iloc[-1]
-    last_date = pd.to_datetime(last["Date"]).date()
+    today = str(pd.to_datetime(last["Date"]).date())
 
     t_state = state.get(ticker, {
-        "in_position": False,
-        "buy_date": None,
-        "buy_price": None,
-        "last_date": None,
+        "in_position": False, "buy_date": None, "buy_price": None,
+        "alerted_buy_dates": [], "alerted_sell_dates": [],
     })
-
-    # ===== CHỐNG TRÙNG: chỉ xử lý 1 lần/ngày/mã =====
-    if t_state.get("last_date") == str(last_date):
-        print(f"  [{ticker}] SKIP — đã xử lý ngày {last_date}")
-        return state
+    t_state.setdefault("alerted_buy_dates", [])
+    t_state.setdefault("alerted_sell_dates", [])
 
     in_pos = t_state["in_position"]
     signal_now = bool(last["Signal"])
 
-    print(f"  [{ticker}] {last_date} | C={last['Close']} | "
+    print(f"  [{ticker}] {today} {session} | C={last['Close']:.2f} | "
           f"VolR={last['VolumeRatio']:.2f} | ROC10={last['ROC10']:.2f} | "
           f"MACD={last['MACD_Hist']:.3f} | ADX={last['ADX14']:.1f} | "
-          f"sig={signal_now}")
+          f"sig={signal_now} | pos={in_pos}")
 
-    # ===== CHƯA CÓ VỊ THẾ → XÉT MUA =====
+    tag = "🌅" if session == "SÁNG" else "🌤"
+    ts = now.strftime("%H:%M")
+
     if not in_pos:
-        if signal_now:
+        if signal_now and today not in t_state["alerted_buy_dates"]:
             t_state["in_position"] = True
-            t_state["buy_date"]    = str(last_date)
+            t_state["buy_date"]    = today
             t_state["buy_price"]   = float(last["Close"])
-            t_state["last_date"]   = str(last_date)
+            t_state["alerted_buy_dates"] = (t_state["alerted_buy_dates"] + [today])[-10:]
 
-            msg = (
-                f"🟢 <b>MUA {ticker}</b>\n"
-                f"Giá adjusted: {last['Close']:.2f}\n"
-                f"Ngày: {last_date}\n"
-                f"VolR: {last['VolumeRatio']:.2f} | ROC10: {last['ROC10']:.2f}% | "
-                f"MACD: {last['MACD_Hist']:.3f} | ADX: {last['ADX14']:.1f}\n"
-                f"\n⚠️ Giá đã điều chỉnh chia tách/cổ tức.\n"
-                f"→ Kiểm tra giá sàn trước khi đặt lệnh."
+            send_telegram(
+                f"{tag} <b>MUA {ticker}</b> [{session}] {ts}\n"
+                f"Giá adjusted: {last['Close']:.2f} | Ngày: {today}\n"
+                f"VolR: {last['VolumeRatio']:.2f} | "
+                f"ROC10: {last['ROC10']:.2f}% | "
+                f"MACD: {last['MACD_Hist']:.3f} | "
+                f"ADX: {last['ADX14']:.1f}\n"
+                f"\n⚠️ Giá có thể đổi đến 15:00. Check giá sàn trước khi đặt lệnh."
             )
-            send_telegram(msg)
-            print(f"  [{ticker}] >>> BUY @ {last['Close']:.2f} (adjusted)")
-
-    # ===== ĐANG CÓ VỊ THẾ → XÉT BÁN =====
+            print(f"  [{ticker}] >>> BUY ALERT @ {last['Close']:.2f}")
+        elif signal_now:
+            print(f"  [{ticker}] đã alert MUA hôm nay, bỏ qua")
     else:
         buy_dt = pd.to_datetime(t_state["buy_date"]).date()
-        hold_days = (last_date - buy_dt).days
-
-        if (not signal_now) and (hold_days >= MIN_HOLD_DAYS):
-            buy_price = t_state["buy_price"]
-            ret = (last["Close"] / buy_price - 1) * 100
+        hold = (pd.to_datetime(today).date() - buy_dt).days
+        if ((not signal_now) and hold >= MIN_HOLD_DAYS
+                and today not in t_state["alerted_sell_dates"]):
+            bp = t_state["buy_price"]
+            ret = (last["Close"] / bp - 1) * 100
             ret_net = ret - FEE_PER_ROUND
-
             t_state["in_position"] = False
             t_state["buy_date"]    = None
             t_state["buy_price"]   = None
-            t_state["last_date"]   = str(last_date)
+            t_state["alerted_sell_dates"] = (t_state["alerted_sell_dates"] + [today])[-10:]
 
-            msg = (
-                f"🔴 <b>BÁN {ticker}</b>\n"
-                f"Giá bán (adjusted): {last['Close']:.2f}\n"
-                f"Giá mua (adjusted): {buy_price:.2f}\n"
+            send_telegram(
+                f"{tag} <b>BÁN {ticker}</b> [{session}] {ts}\n"
+                f"Giá bán: {last['Close']:.2f} | Giá mua: {bp:.2f}\n"
                 f"Return: {ret:+.2f}% (net {ret_net:+.2f}%)\n"
-                f"Hold: {hold_days} ngày\n"
-                f"Ngày: {last_date}\n"
-                f"\n⚠️ Giá đã điều chỉnh chia tách/cổ tức.\n"
-                f"→ Kiểm tra giá sàn trước khi đặt lệnh."
+                f"Hold: {hold} ngày | Ngày: {today}\n"
+                f"\n⚠️ Giá có thể đổi đến 15:00."
             )
-            send_telegram(msg)
-            print(f"  [{ticker}] >>> SELL @ {last['Close']:.2f} | ret {ret:+.2f}%")
+            print(f"  [{ticker}] >>> SELL ALERT @ {last['Close']:.2f} | ret {ret:+.2f}%")
         else:
-            t_state["last_date"] = str(last_date)
-            print(f"  [{ticker}] HOLD | {hold_days} ngày | sig={signal_now}")
+            print(f"  [{ticker}] HOLD | {hold} ngày | sig={signal_now}")
 
     state[ticker] = t_state
     return state
 
 
-# ===== MAIN =====
 def main():
     tz = pytz.timezone(TIMEZONE)
     now = datetime.now(tz)
-    print(f"===== ST5 CORE-TCH — {now.strftime('%Y-%m-%d %H:%M:%S %Z')} =====")
+    session = get_session(now)
+    print(f"===== ST5 CORE-TCH [{session}] — {now.strftime('%Y-%m-%d %H:%M:%S %Z')} =====")
 
     if now.weekday() >= 5:
         print("Cuối tuần — bỏ qua")
@@ -184,21 +177,20 @@ def main():
     # ===== HẾT CHECK =====
 
     state = load_state()
+    n_buy = n_sell = 0
 
-    n_buy = 0
-    n_sell = 0
     for i, ticker in enumerate(CORE_TCH, 1):
-        old_pos = state.get(ticker, {}).get("in_position", False)
-        state = process_ticker(ticker, state, tz)
-        new_pos = state.get(ticker, {}).get("in_position", False)
-        if not old_pos and new_pos: n_buy += 1
-        if old_pos and not new_pos: n_sell += 1
+        old = state.get(ticker, {}).get("in_position", False)
+        state = process_ticker(ticker, state, tz, session, now)
+        new = state.get(ticker, {}).get("in_position", False)
+        if not old and new: n_buy += 1
+        if old and not new: n_sell += 1
         if i < len(CORE_TCH):
             time.sleep(DELAY_BETWEEN_TICKERS)
 
     save_state(state)
-    print(f"\n===== DONE — BUY: {n_buy}, SELL: {n_sell}, Total: {len(CORE_TCH)} =====")
+    print(f"\n===== DONE [{session}] — BUY: {n_buy}, SELL: {n_sell}, Total: {len(CORE_TCH)} =====")
 
 
 if __name__ == "__main__":
-    main() 
+    main()
