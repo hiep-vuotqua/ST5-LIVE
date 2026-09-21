@@ -2,8 +2,8 @@ name: ST5 LIVE CORE-TCH
 
 on:
   schedule:
-    - cron: "45 7 * * 1-5"
-    - cron: "15 8 * * 1-5"
+    - cron: "50 3 * * 1-5"    # 10:50 VN
+    - cron: "50 6 * * 1-5"    # 13:50 VN
   workflow_dispatch:
 
 concurrency:
@@ -15,33 +15,26 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      - name: Install dependencies
-        run: |
-          pip install -q -r requirements.txt
-
-      - name: Run ST5 CORE-TCH
+      - name: Install
+        run: pip install -q -r requirements.txt
+      - name: Run
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           cd Scr
           python main_core_tch.py
-
       - name: Commit state
         run: |
           git config user.name "ST5 Bot"
           git config user.email "bot@st5.local"
-          git add data/live_state_core_tch.json
+          STATE_FILE="data/live_state_core_tch.json"
+          if [ ! -f "$STATE_FILE" ]; then echo "{}" > "$STATE_FILE"; fi
+          git add "$STATE_FILE"
           git diff --staged --quiet || git commit -m "Update CORE-TCH state $(date -u +'%Y-%m-%d %H:%M UTC')"
-          git pull --rebase origin main
           git push
