@@ -1,57 +1,38 @@
-# Scr/config_core_mbb.py
-# Cấu hình riêng cho CORE-MBB LIVE
-# Cập nhật 17/09/2026: Thêm MBB vào nhóm Bank (PASS backtest)
+"""
+CORE-MBB config — variant A (MA200 filter)
+Ngày chốt: 2026-09-21
+Pool: 9 mã (T6+3) — SSI,FRT,MWG,IMP,DVP,BSR + SCI,CTP,APG
+Variant: VolR1.0 / ROC1.0 / MACD-0.5 / ADX15 / MH7 / MA200 filter
+Backtest: CAGR 20.41%, MaxDD -6.11%, Ratio 3.34
+Yearly: 2024 +20.45%, 2025 +7.83%, 2026 +10.42%
+"""
 
 CORE_MBB = [
-    # RealEstate
-    "QCG", "KDC", "CEO", "D2D", "HUT",
-    # Securities
-    "ORS", "TVB", "MBS", "SSI", "TCI",
-    # Retail
-    "TIP", "MCH", "FRT", "MWG",
-    # Construction
-    "CTR", "VGS", "KSB", "TLH",
-    # Pharma
-    "IMP", "AGP", "DBD",
-    # Transport
-    "VEA", "VTO", "HVN",
-    # Bank
-    "CTG", "HDB", "MSB", "MBB",
-    # Industrial
-    "DVP", "TTN",
-    # Agriculture
-    "BFC", "ANV",
-    # Oil
-    "BSR", "PGS",
-    # Other
-    "HAH",
-    # Tech
-    "ONE",
+    # T6 (core từ MBB gốc)
+    "SSI", "FRT", "MWG", "IMP", "DVP", "BSR",
+    # 3 mã mở rộng (từ pool 64)
+    "SCI", "CTP", "APG",
 ]
 
-# =========================
-# ST5 V1.4-MBB — FROZEN
-# =========================
-
+# ===== Signal =====
 VOLUME_RATIO_MIN = 1.0
-ROC10_MIN = 1.0
-MACD_HIST_MIN = -0.5
-ADX14_MIN = 15.0
+ROC10_MIN        = 1.0
+MACD_HIST_MIN    = -0.5
+ADX14_MIN        = 15.0
+MIN_HOLD_DAYS    = 7
 
-# =========================
-# MIN HOLD — 10 PHIÊN DAILY
-# =========================
+# ===== MA200 filter =====
+USE_MA200 = True   # ← thêm
+USE_MA50  = False  # hoặc True — user quyết
 
-MIN_HOLD_DAYS = 10
-
-# =========================
-# GIỜ GIAO DỊCH VIỆT NAM
-# =========================
-
+# ===== Runtime =====
 MORNING_START = "09:15"
-MORNING_END = "11:30"
-
+MORNING_END   = "11:30"
 AFTERNOON_START = "13:00"
-AFTERNOON_END = "14:40"
+AFTERNOON_END   = "14:40"
 
-TIMEZONE = "Asia/Ho_Chi_Minh"
+TIMEZONE              = "Asia/Ho_Chi_Minh"
+FEE_PER_ROUND         = 0.4
+STATE_FILE            = "../data/live_state_core_mbb.json"
+TELEGRAM_TITLE        = "ST5 CORE-MBB"
+DELAY_BETWEEN_TICKERS = 3
