@@ -52,12 +52,10 @@ def load_stock(ticker):
     if not VNSTOCK_OK:
         return None
 
-    # 1. Cache
     cached = _load_cache(ticker)
     if cached is not None and len(cached) >= 300:
         return cached
 
-    # 2. KBS (chỉ 1 nguồn)
     end_date = datetime.now().strftime("%Y-%m-%d")
     try:
         q = Quote(symbol=ticker, source="KBS")
@@ -78,24 +76,23 @@ def load_stock(ticker):
                 df["Date"] = pd.to_datetime(df["Date"])
                 for c in ["Open", "High", "Low", "Close", "Volume"]:
                     df[c] = pd.to_numeric(df[c], errors="coerce")
+
+                # BỎ filter Volume > 0 (BẪY #1)
+                # Chỉ dropna + drop_duplicates
                 df = (df.dropna()
                         .drop_duplicates(subset=["Date"])
                         .sort_values("Date")
                         .reset_index(drop=True))
-                df = df[df["Volume"] > 0].reset_index(drop=True)
 
                 if len(df) >= 300:
                     _save_cache(ticker, df)
                     df.attrs["source"] = "KBS"
-                    # sleep cố định để không vượt rate limit
                     time.sleep(3.5)
                     return df
     except Exception as e:
         print(f"  [{ticker}][KBS] Fail: {str(e)[:80]}")
-        # nếu lỗi rate limit → nghỉ lâu hơn
         time.sleep(5)
 
-    # 3. Cache cũ (dù hết TTL)
     path = _cache_path(ticker)
     if os.path.exists(path):
         try:
@@ -144,7 +141,7 @@ def add_indicators(df):
 
 
 def add_signal(df, adx_min=22):
-    """Luật V3."""
+    """Luật V3 — KHÔNG đổi (đã có MA200+MA50)."""
     from config_core_msra import VOL_RATIO_MIN, ROC10_MIN, MACD_HIST_MIN
     df = df.copy()
     df["Signal"] = (
@@ -155,4 +152,4 @@ def add_signal(df, adx_min=22):
         (df["Close"] > df["MA200"]) &
         (df["Close"] > df["MA50"])
     )
-    return df 
+    return df
