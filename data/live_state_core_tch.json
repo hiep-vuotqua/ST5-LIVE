@@ -16,7 +16,7 @@
     "buy_date": "2026-09-15",
     "buy_price": 7.39,
     "last_update": "2026-09-11T14:45:00+07:00",
-    "last_date": "2026-09-18"
+    "last_date": "2026-09-21"
   },
   "QCG": {
     "in_position": false,
@@ -136,11 +136,11 @@
     "last_date": "2026-09-21"
   },
   "DBD": {
-    "in_position": true,
-    "buy_date": "2026-09-11T14:45:00+07:00",
-    "buy_price": 46.95,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
     "last_update": "2026-09-11T14:45:00+07:00",
-    "last_date": "2026-09-18"
+    "last_date": "2026-09-21"
   },
   "MSB": {
     "in_position": false,
