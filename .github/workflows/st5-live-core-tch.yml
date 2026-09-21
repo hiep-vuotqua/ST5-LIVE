@@ -2,9 +2,7 @@ name: ST5 LIVE CORE-TCH
 
 on:
   schedule:
-    # 14:45 VN = 07:45 UTC (trước đóng cửa 15 phút)
     - cron: "45 7 * * 1-5"
-    # 15:15 VN = 08:15 UTC (sau đóng cửa)
     - cron: "15 8 * * 1-5"
   workflow_dispatch:
 
@@ -45,4 +43,5 @@ jobs:
           git config user.email "bot@st5.local"
           git add data/live_state_core_tch.json
           git diff --staged --quiet || git commit -m "Update CORE-TCH state $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git pull --rebase origin main
           git push
