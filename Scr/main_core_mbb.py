@@ -1,314 +1,181 @@
-# Scr/main_core_mbb.py
-# Cập nhật 17/09/2026:
-#   - FIX entry_date: dùng bar date (row["Date"]) thay vì now
-#     → tránh lệch 1 phiên khi cron 14:45 (bar hôm nay chưa có)
-#   - Telegram rõ hơn: ghi rõ "Ngày bar" vs "Chạy bot"
+"""CORE-MBB engine — variant A (MA200), 2 cron/ngày."""
 
-import os
-import json
-import time
-import requests
+import os, json, time
+from datetime import datetime
+import pytz
 import pandas as pd
+import requests
 
 from config_core_mbb import (
-    CORE_MBB,
-    VOLUME_RATIO_MIN,
-    ROC10_MIN,
-    MACD_HIST_MIN,
-    ADX14_MIN,
-    MIN_HOLD_DAYS,
-    MORNING_START,
-    MORNING_END,
-    AFTERNOON_START,
-    AFTERNOON_END,
-    TIMEZONE,
+    CORE_MBB, VOLUME_RATIO_MIN, ROC10_MIN, MACD_HIST_MIN, ADX14_MIN,
+    MIN_HOLD_DAYS, USE_MA200, USE_MA50,
+    TIMEZONE, STATE_FILE, TELEGRAM_TITLE, FEE_PER_ROUND,
+    DELAY_BETWEEN_TICKERS,
 )
-
 from data_core_mbb import get_intraday_data
-from indicators import add_v14_indicators, v14_signal
+from indicators import add_v14_indicators
 
-
-STATE_FILE = "data/live_state_core_mbb.json"
-
-
-def now_vietnam():
-    return pd.Timestamp.now(tz=TIMEZONE)
-
-
-def in_trading_session(now):
-    if now.weekday() >= 5:
-        return False
-    t = now.strftime("%H:%M")
-    return (
-        MORNING_START <= t <= MORNING_END
-        or AFTERNOON_START <= t <= AFTERNOON_END
-    )
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID   = os.environ.get("TELEGRAM_CHAT_ID", "")
 
 
 def load_state():
-    if not os.path.exists(STATE_FILE):
-        return {}
-    try:
+    if os.path.exists(STATE_FILE):
         with open(STATE_FILE, "r", encoding="utf-8") as f:
-            state = json.load(f)
-        return state if isinstance(state, dict) else {}
-    except Exception as e:
-        print("⚠️ State lỗi:", e)
-        return {}
+            return json.load(f)
+    return {}
 
 
 def save_state(state):
-    os.makedirs("data", exist_ok=True)
-    temp_file = STATE_FILE + ".tmp"
-    with open(temp_file, "w", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, indent=2)
-    os.replace(temp_file, STATE_FILE)
+    folder = os.path.dirname(STATE_FILE)
+    if folder:
+        os.makedirs(folder, exist_ok=True)
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2, ensure_ascii=False, default=str)
 
 
-def send_telegram(message):
-    token = os.getenv("TELEGRAM_BOT_TOKEN")
-    chat_id = os.getenv("TELEGRAM_CHAT_ID")
-    if not token or not chat_id:
-        print("❌ THIẾU TELEGRAM SECRETS")
-        return False
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
+def core_signal(df):
+    conds = ((df["VolumeRatio"] > VOLUME_RATIO_MIN) &
+             (df["ROC10"] > ROC10_MIN) &
+             (df["MACD_Hist"] > MACD_HIST_MIN) &
+             (df["ADX14"] > ADX14_MIN))
+    if USE_MA200:
+        conds = conds & (df["Close"] > df["MA200"])
+    if USE_MA50:
+        conds = conds & (df["Close"] > df["MA50"])
+    return conds
+
+
+def get_session(now):
+    h, m = now.hour, now.minute
+    if h < 12:
+        return "SÁNG"
+    return "CHIỀU"
+
+
+def send_telegram(msg):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("[WARN] Telegram chưa cấu hình")
+        return
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     try:
-        response = requests.post(
-            url,
-            json={"chat_id": chat_id, "text": message},
-            timeout=15,
-        )
-        if response.ok:
-            print("📨 Telegram: OK")
-            return True
-        print("❌ Telegram lỗi:", response.status_code, response.text)
+        r = requests.post(url, json={
+            "chat_id": TELEGRAM_CHAT_ID,
+            "text": f"[{TELEGRAM_TITLE}] {msg}",
+            "parse_mode": "HTML"
+        }, timeout=10)
+        if r.status_code != 200:
+            print(f"[WARN] Telegram HTTP {r.status_code}")
     except Exception as e:
-        print("❌ Telegram exception:", type(e).__name__, e)
-    return False
+        print(f"[ERROR] Telegram: {e}")
 
 
-def build_signal_message(ticker, action, row, now, hold_info=""):
-    price = float(row["Close"])
-    vr = float(row["VolumeRatio"])
-    roc = float(row["ROC10"])
-    macd = float(row["MACD_Hist"])
-    adx = float(row["ADX14"])
-    bar_date = pd.to_datetime(row["Date"]).strftime("%d/%m/%Y")
-    return (
-        f"🚨 ST5 CORE-MBB {action}\n\n"
-        f"Mã: {ticker}\n"
-        f"Giá adjusted: {price:.2f}\n"
-        f"Ngày bar: {bar_date}\n"
-        f"Chạy bot: {now.strftime('%d/%m/%Y %H:%M:%S')}\n\n"
-        f"Volume Ratio: {vr:.2f} {'✅' if vr > VOLUME_RATIO_MIN else '❌'}\n"
-        f"ROC10: {roc:.2f}% {'✅' if roc > ROC10_MIN else '❌'}\n"
-        f"MACD Hist: {macd:.4f} {'✅' if macd > MACD_HIST_MIN else '❌'}\n"
-        f"ADX14: {adx:.2f} {'✅' if adx > ADX14_MIN else '❌'}\n\n"
-        f"ST5 V1.4-MBB: 4/4 HỘI TỤ\n"
-        f"\n⚠️ Giá đã điều chỉnh chia tách/cổ tức.\n"
-        f"→ Kiểm tra giá sàn trước khi đặt lệnh."
-        f"{hold_info}"
-    )
-
-
-def normalize_old_state(state):
-    changed = False
-    for ticker, value in list(state.items()):
-        if isinstance(value, bool):
-            state[ticker] = {
-                "position": False,
-                "entry_date": None,
-                "entry_time": None,
-            }
-            changed = True
-    return changed
-
-
-def get_position_info(state, ticker):
-    value = state.get(ticker)
-    if not isinstance(value, dict):
-        return False, None, None
-    position = bool(value.get("position", False))
-    entry_date = value.get("entry_date")
-    entry_time = value.get("entry_time")
-    return position, entry_date, entry_time
-
-
-def count_trading_days_since(df, entry_date):
-    """
-    Đếm số ngày giao dịch đã qua kể từ entry_date,
-    dựa trên các ngày xuất hiện trong dữ liệu daily.
-    """
-    if not entry_date:
-        return 0
-    try:
-        entry_date = pd.Timestamp(entry_date).date()
-    except Exception:
-        return 0
-
-    dates = (
-        pd.to_datetime(df["Date"], errors="coerce")
-        .dt.date
-        .dropna()
-        .drop_duplicates()
-        .tolist()
-    )
-    dates = sorted(dates)
-    future_dates = [d for d in dates if d > entry_date]
-    return len(future_dates)
-
-
-def can_sell_min_hold(df, entry_date, now):
-    """
-    CORE-MBB: chỉ được SELL khi đã đủ MIN_HOLD_DAYS ngày giao dịch.
-    """
-    if not entry_date:
-        return False, "Không có ngày BUY"
-
-    trading_days_passed = count_trading_days_since(df, entry_date)
-
-    if trading_days_passed < MIN_HOLD_DAYS:
-        remaining = MIN_HOLD_DAYS - trading_days_passed
-        return (
-            False,
-            f"Chưa đủ min hold — còn {remaining} ngày giao dịch",
-        )
-
-    return True, f"ĐÃ ĐỦ {MIN_HOLD_DAYS} NGÀY GIAO DỊCH"
-
-
-def process_ticker(ticker, state, now):
-    print(f"\n========== {ticker} ==========")
+def process_ticker(ticker, state, tz, session, now):
     try:
         df = get_intraday_data(ticker, days=400)
-        if df.empty:
-            print("❌ Không có dữ liệu")
-            return False
-
-        df = add_v14_indicators(df)
-        df["Signal"] = v14_signal(
-            df,
-            volume_ratio_min=VOLUME_RATIO_MIN,
-            roc10_min=ROC10_MIN,
-            macd_hist_min=MACD_HIST_MIN,
-            adx14_min=ADX14_MIN,
-        )
-        df = df.dropna(
-            subset=["VolumeRatio", "ROC10", "MACD_Hist", "ADX14"]
-        )
-        if df.empty:
-            print("⏳ Chưa đủ dữ liệu")
-            return False
-
-        row = df.iloc[-1]
-        signal = bool(row["Signal"])
-
-        old_position, entry_date, entry_time = get_position_info(
-            state, ticker
-        )
-
-        print(
-            f"Price={row['Close']:.2f} | "
-            f"VR={row['VolumeRatio']:.2f} | "
-            f"ROC={row['ROC10']:.2f} | "
-            f"MACD={row['MACD_Hist']:.4f} | "
-            f"ADX={row['ADX14']:.2f}"
-        )
-        print(f"Signal={signal} | Position={old_position}")
-
-        # ===== BUY =====
-        if signal and not old_position:
-            print("🟢 BUY SIGNAL")
-            # FIX: dùng bar date (row["Date"]) thay vì now
-            bar_ts = pd.to_datetime(row["Date"])
-            bar_date_str = bar_ts.strftime("%Y-%m-%d")
-            bar_time_str = bar_ts.strftime("%H:%M:%S")
-
-            message = build_signal_message(ticker, "BUY", row, now)
-            if send_telegram(message):
-                state[ticker] = {
-                    "position": True,
-                    "entry_date": bar_date_str,
-                    "entry_time": bar_time_str,
-                }
-                save_state(state)
-                print(f"💾 BUY STATE SAVED: {ticker} | entry_date={bar_date_str}")
-            return True
-
-        # ===== SELL =====
-        if old_position and not signal:
-            can_sell, reason = can_sell_min_hold(df, entry_date, now)
-            print(f"Min hold: {can_sell} | {reason}")
-            if not can_sell:
-                print("⏳ Tín hiệu mất nhưng CHƯA ĐỦ MIN HOLD -> GIỮ")
-                return False
-
-            print("🔴 SELL SIGNAL — ĐỦ MIN HOLD")
-            message = build_signal_message(
-                ticker, "SELL", row, now,
-                hold_info=(
-                    f"\n\n⏱ Min hold {MIN_HOLD_DAYS} ngày: ✅\n"
-                    f"Ngày BUY: {entry_date}\n"
-                    f"Giờ BUY: {entry_time}"
-                )
-            )
-            if send_telegram(message):
-                state[ticker] = {
-                    "position": False,
-                    "entry_date": None,
-                    "entry_time": None,
-                }
-                save_state(state)
-                print(f"💾 SELL STATE SAVED: {ticker}")
-            return True
-
-        if old_position:
-            print("🟡 ĐANG GIỮ — chưa có SELL hợp lệ")
-        else:
-            print("— Không có tín hiệu mới")
-        return False
-
     except Exception as e:
-        print(f"❌ {ticker}: {type(e).__name__}: {e}")
-        return False
+        print(f"  [{ticker}] ERROR data: {e}")
+        return state
+
+    if df is None or len(df) < 250:
+        print(f"  [{ticker}] SKIP — {len(df)} nến")
+        return state
+
+    df["MA50"]  = df["Close"].rolling(50).mean()
+    df["MA200"] = df["Close"].rolling(200).mean()
+    df = add_v14_indicators(df).dropna().reset_index(drop=True)
+
+    if len(df) == 0:
+        return state
+
+    df["Signal"] = core_signal(df)
+    last = df.iloc[-1]
+    today = str(pd.to_datetime(last["Date"]).date())
+
+    t_state = state.get(ticker, {
+        "in_position": False, "buy_date": None, "buy_price": None,
+        "alerted_buy_dates": [], "alerted_sell_dates": [],
+    })
+    t_state.setdefault("alerted_buy_dates", [])
+    t_state.setdefault("alerted_sell_dates", [])
+
+    in_pos = t_state["in_position"]
+    signal_now = bool(last["Signal"])
+
+    print(f"  [{ticker}] {today} {session} | C={last['Close']:.2f} | "
+          f"VolR={last['VolumeRatio']:.2f} | ROC10={last['ROC10']:.2f} | "
+          f"MACD={last['MACD_Hist']:.3f} | ADX={last['ADX14']:.1f} | "
+          f"MA200={'Y' if last['Close'] > last['MA200'] else 'N'} | "
+          f"sig={signal_now} | pos={in_pos}")
+
+    tag = "🌅" if session == "SÁNG" else "🌤"
+    ts = now.strftime("%H:%M")
+
+    if not in_pos:
+        if signal_now and today not in t_state["alerted_buy_dates"]:
+            t_state["in_position"] = True
+            t_state["buy_date"]    = today
+            t_state["buy_price"]   = float(last["Close"])
+            t_state["alerted_buy_dates"] = (t_state["alerted_buy_dates"] + [today])[-10:]
+
+            send_telegram(
+                f"{tag} <b>MUA {ticker}</b> [{session}] {ts}\n"
+                f"Giá: {last['Close']:.2f} | Ngày: {today}\n"
+                f"VolR: {last['VolumeRatio']:.2f} | ROC10: {last['ROC10']:.2f}% | "
+                f"MACD: {last['MACD_Hist']:.3f} | ADX: {last['ADX14']:.1f}\n"
+                f"MA200: {'OK' if last['Close'] > last['MA200'] else 'FAIL'}\n"
+                f"\n⚠️ Check giá sàn trước khi đặt lệnh."
+            )
+            print(f"  [{ticker}] >>> BUY ALERT @ {last['Close']:.2f}")
+    else:
+        buy_dt = pd.to_datetime(t_state["buy_date"]).date()
+        hold = (pd.to_datetime(today).date() - buy_dt).days
+        if ((not signal_now) and hold >= MIN_HOLD_DAYS
+                and today not in t_state["alerted_sell_dates"]):
+            bp = t_state["buy_price"]
+            ret = (last["Close"] / bp - 1) * 100
+            t_state["in_position"] = False
+            t_state["buy_date"]    = None
+            t_state["buy_price"]   = None
+            t_state["alerted_sell_dates"] = (t_state["alerted_sell_dates"] + [today])[-10:]
+
+            send_telegram(
+                f"{tag} <b>BÁN {ticker}</b> [{session}] {ts}\n"
+                f"Giá: {last['Close']:.2f} | Mua: {bp:.2f} | "
+                f"Ret: {ret:+.2f}% (net {ret-FEE_PER_ROUND:+.2f}%)\n"
+                f"Hold: {hold} ngày | Ngày: {today}"
+            )
+            print(f"  [{ticker}] >>> SELL ALERT @ {last['Close']:.2f} | {ret:+.2f}%")
+
+    state[ticker] = t_state
+    return state
 
 
 def main():
-    print("=" * 70)
-    print("ST5 CORE-MBB LIVE — V1.4-MBB — MIN HOLD 10 NGÀY")
-    print("=" * 70)
+    tz = pytz.timezone(TIMEZONE)
+    now = datetime.now(tz)
+    session = get_session(now)
+    print(f"===== ST5 CORE-MBB [{session}] — {now.strftime('%Y-%m-%d %H:%M:%S %Z')} =====")
 
-    now = now_vietnam()
-    print("Vietnam:", now.strftime("%Y-%m-%d %H:%M:%S"))
-
-    # ===== CHECK GIỜ GIAO DỊCH =====
-    if not in_trading_session(now):
-        print(f"Ngoài giờ giao dịch ({now.strftime('%H:%M')}) — bỏ qua")
+    if now.weekday() >= 5:
+        print("Cuối tuần — bỏ qua")
         return
-    # ===== HẾT CHECK =====
 
     state = load_state()
-    if normalize_old_state(state):
-        save_state(state)
-        print("💾 Đã reset state cũ")
+    n_buy = n_sell = 0
 
-    print(f"CORE-MBB: {len(CORE_MBB)} mã")
-
-    signal_count = 0
-    for index, ticker in enumerate(CORE_MBB):
-        changed = process_ticker(ticker, state, now)
-        if changed:
-            signal_count += 1
-        if index < len(CORE_MBB) - 1:
-            time.sleep(3)
+    for i, ticker in enumerate(CORE_MBB, 1):
+        old = state.get(ticker, {}).get("in_position", False)
+        state = process_ticker(ticker, state, tz, session, now)
+        new = state.get(ticker, {}).get("in_position", False)
+        if not old and new: n_buy += 1
+        if old and not new: n_sell += 1
+        if i < len(CORE_MBB):
+            time.sleep(DELAY_BETWEEN_TICKERS)
 
     save_state(state)
-    print()
-    print(f"📊 Signal changes: {signal_count}")
-    print("=" * 70)
-    print("ST5 CORE-MBB LIVE HOÀN TẤT")
-    print("=" * 70)
+    print(f"\n===== DONE [{session}] — BUY: {n_buy}, SELL: {n_sell}, Total: {len(CORE_MBB)} =====")
 
 
 if __name__ == "__main__":
-    main() 
+    main()
