@@ -1,1 +1,200 @@
-{}
+{
+  "PMG": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "VFG": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "GEX": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "ABB": {
+    "in_position": true,
+    "buy_date": "2026-09-18",
+    "buy_price": 17.9,
+    "alerted_buy_dates": [
+      "2026-09-18"
+    ],
+    "alerted_sell_dates": []
+  },
+  "CTP": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "MFS": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "TMT": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "APS": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "PSB": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "SCI": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "SEA": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "TDH": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "VLG": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "LGL": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "HVT": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "SGP": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "TCO": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "KDM": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "MVC": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "HLD": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "ICG": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "IDJ": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "VDS": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "HCM": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "BVS": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "NKG": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "NVL": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "KDC": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  }
+}
