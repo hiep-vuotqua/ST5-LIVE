@@ -1,56 +1,40 @@
-name: Run CORE-DGW
+name: ST5 LIVE CORE-DGW
 
 on:
+  schedule:
+    - cron: "20 4 * * 1-5"    # 11:20 VN
+    - cron: "10 7 * * 1-5"    # 14:10 VN
   workflow_dispatch:
 
-  schedule:
-    # 14:45 Vietnam = 07:45 UTC
-    - cron: '45 7 * * 1-5'
-
-    # 15:15 Vietnam = 08:15 UTC
-    - cron: '15 8 * * 1-5'
+concurrency:
+  group: st5-live-core-dgw
+  cancel-in-progress: false
 
 jobs:
-  run-dgw:
+  run:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-
     permissions:
       contents: write
-
     steps:
-
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
+          python-version: "3.11"
       - name: Install
-        run: |
-          python -m pip install --upgrade pip
-          pip install pandas numpy requests pytz vnstock
-
-      - name: Run CORE-DGW
+        run: pip install -q -r requirements.txt
+      - name: Run
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           cd Scr
           python main_core_dgw.py
-
-      - name: Commit state & cache
-        if: always()
+      - name: Commit state
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git add -A
-
-          git diff --staged --quiet || git commit -m "Update CORE-DGW state & cache [skip ci]"
-
-          git push || true 
+          git config user.name "ST5 Bot"
+          git config user.email "bot@st5.local"
+          STATE_FILE="data/live_state_core_dgw.json"
+          if [ ! -f "$STATE_FILE" ]; then echo "{}" > "$STATE_FILE"; fi
+          git add "$STATE_FILE"
+          git diff --staged --quiet || git commit -m "Update CORE-DGW state $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push 
