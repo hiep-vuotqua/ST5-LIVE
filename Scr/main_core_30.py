@@ -80,7 +80,7 @@ def send_telegram(msg):
 
 def process_ticker(ticker, state, tz, session, now):
     try:
-        df = get_intraday_data(ticker, days=120)
+        df = get_intraday_data(ticker, days=50a0)
     except Exception as e:
         print(f"  [{ticker}] ERROR data: {e}")
         return state
