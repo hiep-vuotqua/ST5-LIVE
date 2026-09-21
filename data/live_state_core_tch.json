@@ -35,7 +35,7 @@
     "buy_date": "2026-09-18",
     "buy_price": 17.9,
     "last_update": "2026-09-11T14:55:00+07:00",
-    "last_date": "2026-09-18"
+    "last_date": "2026-09-21"
   },
   "SCL": {
     "in_position": false,
@@ -110,11 +110,11 @@
     "last_update": "2026-09-11T14:45:00+07:00"
   },
   "STB": {
-    "in_position": true,
-    "buy_date": "2026-09-11",
-    "buy_price": 77.3,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
     "last_update": "2026-09-11T14:45:00+07:00",
-    "last_date": "2026-09-18"
+    "last_date": "2026-09-21"
   },
   "BCM": {
     "in_position": false,
@@ -133,7 +133,7 @@
     "buy_date": "2026-09-17",
     "buy_price": 53.0,
     "last_update": "2026-09-11T14:45:00+07:00",
-    "last_date": "2026-09-18"
+    "last_date": "2026-09-21"
   },
   "DBD": {
     "in_position": true,
@@ -149,11 +149,11 @@
     "last_update": "2026-09-11T14:45:00+07:00"
   },
   "HTN": {
-    "in_position": true,
-    "buy_date": "2026-09-11",
-    "buy_price": 6.65,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
     "last_update": "2026-09-11T14:45:00+07:00",
-    "last_date": "2026-09-18"
+    "last_date": "2026-09-21"
   },
   "GEG": {
     "in_position": false,
@@ -168,11 +168,11 @@
     "last_update": "2026-09-11T14:45:00+07:00"
   },
   "AST": {
-    "in_position": true,
-    "buy_date": "2026-09-11T14:45:00+07:00",
-    "buy_price": 67.9,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
     "last_update": "2026-09-11T14:45:00+07:00",
-    "last_date": "2026-09-18"
+    "last_date": "2026-09-21"
   },
   "TCM": {
     "in_position": false,
