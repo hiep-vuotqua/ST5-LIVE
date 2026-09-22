@@ -21,13 +21,15 @@
     "alerted_sell_dates": []
   },
   "ABB": {
-    "in_position": true,
-    "buy_date": "2026-09-18",
-    "buy_price": 17.9,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
     "alerted_buy_dates": [
       "2026-09-18"
     ],
-    "alerted_sell_dates": []
+    "alerted_sell_dates": [
+      "2026-09-22"
+    ]
   },
   "CTP": {
     "in_position": false,
