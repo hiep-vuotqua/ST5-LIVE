@@ -94,11 +94,13 @@
     "alerted_sell_dates": []
   },
   "HAH": {
-    "in_position": false,
-    "buy_date": null,
-    "buy_price": null,
+    "in_position": true,
+    "buy_date": "2026-09-22",
+    "buy_price": 48.25,
     "last_update": "2026-09-11T14:45:00+07:00",
-    "alerted_buy_dates": [],
+    "alerted_buy_dates": [
+      "2026-09-22"
+    ],
     "alerted_sell_dates": []
   },
   "SIP": {
