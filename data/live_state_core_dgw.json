@@ -1,1 +1,154 @@
-{}
+{
+  "VGI": {
+    "pending_buy": false,
+    "signal_date": null,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_processed_date": "2026-09-15"
+  },
+  "TA9": {
+    "pending_buy": true,
+    "signal_date": "2026-09-15",
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_processed_date": "2026-09-15"
+  },
+  "SCL": {
+    "pending_buy": false,
+    "signal_date": null,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_processed_date": "2026-09-15"
+  },
+  "CSV": {
+    "pending_buy": false,
+    "signal_date": null,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_processed_date": "2026-09-15"
+  },
+  "LPB": {
+    "pending_buy": false,
+    "signal_date": null,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_processed_date": "2026-09-15"
+  },
+  "VTP": {
+    "pending_buy": false,
+    "signal_date": null,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_processed_date": "2026-09-15"
+  },
+  "NAG": {
+    "pending_buy": false,
+    "signal_date": null,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_processed_date": "2026-09-15"
+  },
+  "SJS": {
+    "pending_buy": true,
+    "signal_date": "2026-09-15",
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_processed_date": "2026-09-15"
+  },
+  "DCM": {
+    "pending_buy": false,
+    "signal_date": null,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_processed_date": "2026-09-15"
+  },
+  "DPM": {
+    "pending_buy": false,
+    "signal_date": null,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_processed_date": "2026-09-15"
+  },
+  "BCM": {
+    "pending_buy": false,
+    "signal_date": null,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_processed_date": "2026-09-15"
+  },
+  "TVS": {
+    "pending_buy": false,
+    "signal_date": null,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_processed_date": "2026-09-15"
+  },
+  "DGW": {
+    "pending_buy": false,
+    "signal_date": null,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_processed_date": "2026-09-15"
+  },
+  "MCG": {
+    "pending_buy": false,
+    "signal_date": null,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_processed_date": "2026-09-15"
+  },
+  "SCI": {
+    "pending_buy": false,
+    "signal_date": null,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_processed_date": "2026-09-22"
+  },
+  "CTP": {
+    "pending_buy": false,
+    "signal_date": null,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_processed_date": "2026-09-22"
+  },
+  "APG": {
+    "pending_buy": false,
+    "signal_date": null,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_processed_date": "2026-09-22"
+  },
+  "VPB": {
+    "pending_buy": false,
+    "signal_date": null,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_processed_date": "2026-09-22"
+  },
+  "HLD": {
+    "pending_buy": false,
+    "signal_date": null,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "last_processed_date": "2026-09-22"
+  }
+}
