@@ -3,20 +3,26 @@
     "in_position": false,
     "buy_date": null,
     "buy_price": null,
-    "last_update": "2026-09-11T14:45:00+07:00"
+    "last_update": "2026-09-11T14:45:00+07:00",
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
   },
   "FRT": {
     "in_position": false,
     "buy_date": null,
     "buy_price": null,
-    "last_update": "2026-09-11T14:45:00+07:00"
+    "last_update": "2026-09-11T14:45:00+07:00",
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
   },
   "CIG": {
     "in_position": true,
     "buy_date": "2026-09-15",
     "buy_price": 7.39,
     "last_update": "2026-09-11T14:45:00+07:00",
-    "last_date": "2026-09-21"
+    "last_date": "2026-09-21",
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
   },
   "QCG": {
     "in_position": false,
@@ -35,67 +41,89 @@
     "buy_date": "2026-09-18",
     "buy_price": 17.9,
     "last_update": "2026-09-11T14:55:00+07:00",
-    "last_date": "2026-09-21"
+    "last_date": "2026-09-21",
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
   },
   "SCL": {
     "in_position": false,
     "buy_date": null,
     "buy_price": null,
-    "last_update": "2026-09-11T14:55:00+07:00"
+    "last_update": "2026-09-11T14:55:00+07:00",
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
   },
   "MBS": {
     "in_position": false,
     "buy_date": null,
     "buy_price": null,
-    "last_update": "2026-09-11T14:45:00+07:00"
+    "last_update": "2026-09-11T14:45:00+07:00",
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
   },
   "APG": {
     "in_position": false,
     "buy_date": null,
     "buy_price": null,
-    "last_update": "2026-09-11T14:45:00+07:00"
+    "last_update": "2026-09-11T14:45:00+07:00",
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
   },
   "SJS": {
     "in_position": false,
     "buy_date": null,
     "buy_price": null,
-    "last_update": "2026-09-11T14:45:00+07:00"
+    "last_update": "2026-09-11T14:45:00+07:00",
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
   },
   "SLS": {
     "in_position": false,
     "buy_date": null,
     "buy_price": null,
-    "last_update": "2026-09-11T14:10:00+07:00"
+    "last_update": "2026-09-11T14:10:00+07:00",
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
   },
   "SAS": {
     "in_position": false,
     "buy_date": null,
     "buy_price": null,
-    "last_update": "2026-09-11T14:30:00+07:00"
+    "last_update": "2026-09-11T14:30:00+07:00",
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
   },
   "HAH": {
     "in_position": false,
     "buy_date": null,
     "buy_price": null,
-    "last_update": "2026-09-11T14:45:00+07:00"
+    "last_update": "2026-09-11T14:45:00+07:00",
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
   },
   "SIP": {
     "in_position": false,
     "buy_date": null,
     "buy_price": null,
-    "last_update": "2026-09-11T14:45:00+07:00"
+    "last_update": "2026-09-11T14:45:00+07:00",
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
   },
   "CTR": {
     "in_position": false,
     "buy_date": null,
     "buy_price": null,
-    "last_update": "2026-09-11T14:45:00+07:00"
+    "last_update": "2026-09-11T14:45:00+07:00",
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
   },
   "MCH": {
     "in_position": false,
     "buy_date": null,
     "buy_price": null,
-    "last_update": "2026-09-11T14:45:00+07:00"
+    "last_update": "2026-09-11T14:45:00+07:00",
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
   },
   "IMP": {
     "in_position": false,
@@ -114,13 +142,17 @@
     "buy_date": null,
     "buy_price": null,
     "last_update": "2026-09-11T14:45:00+07:00",
-    "last_date": "2026-09-21"
+    "last_date": "2026-09-21",
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
   },
   "BCM": {
     "in_position": false,
     "buy_date": null,
     "buy_price": null,
-    "last_update": "2026-09-11T14:45:00+07:00"
+    "last_update": "2026-09-11T14:45:00+07:00",
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
   },
   "ANV": {
     "in_position": false,
@@ -153,13 +185,17 @@
     "buy_date": null,
     "buy_price": null,
     "last_update": "2026-09-11T14:45:00+07:00",
-    "last_date": "2026-09-21"
+    "last_date": "2026-09-21",
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
   },
   "GEG": {
     "in_position": false,
     "buy_date": null,
     "buy_price": null,
-    "last_update": "2026-09-11T14:45:00+07:00"
+    "last_update": "2026-09-11T14:45:00+07:00",
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
   },
   "POW": {
     "in_position": false,
@@ -215,5 +251,75 @@
     "buy_date": null,
     "buy_price": null,
     "last_update": "2026-09-11T14:45:00+07:00"
+  },
+  "SCI": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "CTP": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "VPB": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "HLD": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "LGL": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "VDS": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "APS": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "PSB": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "TMT": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
+  },
+  "TCO": {
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
+    "alerted_buy_dates": [],
+    "alerted_sell_dates": []
   }
 }
