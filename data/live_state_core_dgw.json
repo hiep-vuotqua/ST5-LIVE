@@ -8,11 +8,11 @@
     "last_processed_date": "2026-09-15"
   },
   "TA9": {
-    "pending_buy": true,
-    "signal_date": "2026-09-15",
-    "in_position": false,
-    "buy_date": null,
-    "buy_price": null,
+    "pending_buy": false,
+    "signal_date": null,
+    "in_position": true,
+    "buy_date": "2026-09-15",
+    "buy_price": 10.5,
     "last_processed_date": "2026-09-15"
   },
   "SCL": {
@@ -56,11 +56,11 @@
     "last_processed_date": "2026-09-15"
   },
   "SJS": {
-    "pending_buy": true,
-    "signal_date": "2026-09-15",
-    "in_position": false,
-    "buy_date": null,
-    "buy_price": null,
+    "pending_buy": false,
+    "signal_date": null,
+    "in_position": true,
+    "buy_date": "2026-09-15",
+    "buy_price": 56.5,
     "last_processed_date": "2026-09-15"
   },
   "DCM": {
