@@ -1,0 +1,39 @@
+name: ST5 CORE-MULTI Live
+
+on:
+  schedule:
+    - cron: "15 6 * * 1-5"   # 13:15 VN
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: st5-live-core-multi
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install deps
+        run: pip install -r requirements.txt
+      - name: Run bot
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: cd Scr && python main_core_multi.py
+      - name: Commit state
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add data/live_state_core_multi.json || true
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: update state core-multi [skip ci]"
+            git push
+          fi 
