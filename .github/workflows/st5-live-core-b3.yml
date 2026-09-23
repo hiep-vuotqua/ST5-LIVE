@@ -1,0 +1,39 @@
+name: ST5 CORE-B3 Live
+
+on:
+  schedule:
+    - cron: "0 3 * * 1-5"   # 10:00 VN
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: st5-live-core-b3
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install deps
+        run: pip install -r requirements.txt
+      - name: Run bot
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: cd Scr && python main_core_b3.py
+      - name: Commit state
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add data/live_state_core_b3.json || true
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: update state core-b3 [skip ci]"
+            git push
+          fi 
