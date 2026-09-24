@@ -1,0 +1,36 @@
+name: ST5 CORE-VGCD
+on:
+  schedule:
+    - cron: '30 3 * * 1-5'   # 10:30 VN
+    - cron: '30 6 * * 1-5'   # 13:30 VN
+  workflow_dispatch:
+
+concurrency:
+  group: st5-live-core-vgcd
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install
+        run: pip install -r requirements.txt
+      - name: Run bot
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TZ: Asia/Ho_Chi_Minh
+        run: cd Scr && python main_core_vgcd.py
+      - name: Commit state
+        run: |
+          git config user.name "st5-bot"
+          git config user.email "bot@st5.local"
+          git add data/live_state_core_vgcd.json || true
+          git diff --staged --quiet || git commit -m "update state vgcd [skip ci]"
+          git push || true 
