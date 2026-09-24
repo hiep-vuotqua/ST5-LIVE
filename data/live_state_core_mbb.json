@@ -7,10 +7,12 @@
     "alerted_sell_dates": []
   },
   "FRT": {
-    "in_position": false,
-    "buy_date": null,
-    "buy_price": null,
-    "alerted_buy_dates": [],
+    "in_position": true,
+    "buy_date": "2026-09-24",
+    "buy_price": 142.0,
+    "alerted_buy_dates": [
+      "2026-09-24"
+    ],
     "alerted_sell_dates": []
   },
   "MWG": {
