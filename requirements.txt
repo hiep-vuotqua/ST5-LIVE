@@ -1,4 +1,5 @@
-vnstock
+git+https://github.com/thinh-vu/vnstock.git
+
 pandas
 numpy
 requests
