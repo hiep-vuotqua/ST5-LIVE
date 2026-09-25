@@ -1,1 +1,198 @@
-{} 
+{
+  "CTS": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "CEO": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "FTS": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "GEE": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "VGC": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "SSI": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "BSI": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "DCM": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "MBS": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "HSL": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "HHS": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "BSR": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "MCH": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "VIC": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "DPM": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "MBB": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "ACV": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "DDV": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "DGW": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "C69": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "ELC": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "FRT": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "VDS": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "VIX": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "GAS": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "TNI": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "CTG": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  },
+  "PLX": {
+    "in_position": false,
+    "entry_price": null,
+    "entry_date": null,
+    "entry_i": null,
+    "bars_held": 0
+  }
+}
