@@ -20,15 +20,25 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
       - name: Install
-        run: pip install -q -r requirements.txt
+        run: |
+          python -m pip install --upgrade pip
+          pip install --index-url https://vnstocks.com/api/simple \
+                      --extra-index-url https://pypi.org/simple \
+                      --trusted-host vnstocks.com \
+                      vnstock vnai
+          pip install -r requirements.txt
+
       - name: Run
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          TZ: Asia/Ho_Chi_Minh
         run: |
           cd Scr
           python main_core_mbb.py
+
       - name: Commit state
         run: |
           git config user.name "ST5 Bot"
