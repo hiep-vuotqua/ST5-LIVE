@@ -117,7 +117,7 @@
     "in_position": false,
     "buy_date": null,
     "buy_price": null,
-    "last_processed_date": "2026-09-24"
+    "last_processed_date": "2026-09-25"
   },
   "CTP": {
     "pending_buy": false,
@@ -125,7 +125,7 @@
     "in_position": false,
     "buy_date": null,
     "buy_price": null,
-    "last_processed_date": "2026-09-24"
+    "last_processed_date": "2026-09-25"
   },
   "APG": {
     "pending_buy": false,
@@ -133,15 +133,15 @@
     "in_position": false,
     "buy_date": null,
     "buy_price": null,
-    "last_processed_date": "2026-09-24"
+    "last_processed_date": "2026-09-25"
   },
   "VPB": {
-    "pending_buy": true,
-    "signal_date": "2026-09-24",
-    "in_position": false,
-    "buy_date": null,
-    "buy_price": null,
-    "last_processed_date": "2026-09-24"
+    "pending_buy": false,
+    "signal_date": null,
+    "in_position": true,
+    "buy_date": "2026-09-24",
+    "buy_price": 22.25,
+    "last_processed_date": "2026-09-25"
   },
   "HLD": {
     "pending_buy": false,
@@ -149,6 +149,6 @@
     "in_position": false,
     "buy_date": null,
     "buy_price": null,
-    "last_processed_date": "2026-09-24"
+    "last_processed_date": "2026-09-25"
   }
 }
