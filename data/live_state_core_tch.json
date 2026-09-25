@@ -16,13 +16,15 @@
     "alerted_sell_dates": []
   },
   "CIG": {
-    "in_position": true,
-    "buy_date": "2026-09-15",
-    "buy_price": 7.39,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
     "last_update": "2026-09-11T14:45:00+07:00",
     "last_date": "2026-09-21",
     "alerted_buy_dates": [],
-    "alerted_sell_dates": []
+    "alerted_sell_dates": [
+      "2026-09-25"
+    ]
   },
   "QCG": {
     "in_position": false,
@@ -269,10 +271,12 @@
     "alerted_sell_dates": []
   },
   "VPB": {
-    "in_position": false,
-    "buy_date": null,
-    "buy_price": null,
-    "alerted_buy_dates": [],
+    "in_position": true,
+    "buy_date": "2026-09-25",
+    "buy_price": 23.25,
+    "alerted_buy_dates": [
+      "2026-09-25"
+    ],
     "alerted_sell_dates": []
   },
   "HLD": {
