@@ -30,10 +30,12 @@
     "alerted_sell_dates": []
   },
   "DVP": {
-    "in_position": false,
-    "buy_date": null,
-    "buy_price": null,
-    "alerted_buy_dates": [],
+    "in_position": true,
+    "buy_date": "2026-09-29",
+    "buy_price": 75.6,
+    "alerted_buy_dates": [
+      "2026-09-29"
+    ],
     "alerted_sell_dates": []
   },
   "BSR": {
