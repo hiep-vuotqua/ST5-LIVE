@@ -1,0 +1,43 @@
+name: ST5 LIVE CORE-SCAN
+
+on:
+  schedule:
+    - cron: "35 2 * * 1-5"    # 9:35 VN
+    - cron: "15 6 * * 1-5"    # 13:15 VN
+    - cron: "45 7 * * 1-5"    # 14:45 VN
+  workflow_dispatch:
+
+concurrency:
+  group: st5-live-core-scan
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+      - name: Run
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          VNSTOCK_TELEMETRY:  "off"
+        run: |
+          cd Scr
+          python main_core_scan.py
+      - name: Commit state
+        run: |
+          git config user.name "ST5 Bot"
+          git config user.email "bot@st5.local"
+          STATE_FILE="data/live_state_core_scan.json"
+          if [ ! -f "$STATE_FILE" ]; then echo "{}" > "$STATE_FILE"; fi
+          git add "$STATE_FILE"
+          git diff --staged --quiet || git commit -m "Update CORE-SCAN state $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git pull --rebase origin main
+          git push
