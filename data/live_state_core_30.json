@@ -1,12 +1,14 @@
 {
   "ABB": {
-    "in_position": true,
-    "buy_date": "2026-09-30",
-    "buy_price": 18.1,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
     "alerted_buy_dates": [
       "2026-09-30"
     ],
-    "alerted_sell_dates": []
+    "alerted_sell_dates": [
+      "2026-10-05"
+    ]
   },
   "HCM": {
     "in_position": false,
@@ -58,19 +60,23 @@
     "alerted_sell_dates": []
   },
   "FRT": {
-    "in_position": true,
-    "buy_date": "2026-09-29",
-    "buy_price": 139.0,
-    "alerted_buy_dates": [
-      "2026-09-29"
-    ],
-    "alerted_sell_dates": []
-  },
-  "NHA": {
     "in_position": false,
     "buy_date": null,
     "buy_price": null,
-    "alerted_buy_dates": [],
+    "alerted_buy_dates": [
+      "2026-09-29"
+    ],
+    "alerted_sell_dates": [
+      "2026-10-05"
+    ]
+  },
+  "NHA": {
+    "in_position": true,
+    "buy_date": "2026-10-05",
+    "buy_price": 8.04,
+    "alerted_buy_dates": [
+      "2026-10-05"
+    ],
     "alerted_sell_dates": []
   },
   "VNA": {
