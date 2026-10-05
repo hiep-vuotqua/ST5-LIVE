@@ -2,6 +2,30 @@
   "positions": {},
   "cash": 1000000000,
   "peak_equity": 1000000000,
-  "last_signals": {},
-  "last_run": null
-} 
+  "last_signals": {
+    "CTS_DCM": false,
+    "DGW_DCM": false,
+    "HSL_DCM": false,
+    "CII_DCM": false,
+    "CEO_DCM": false,
+    "MCH_DCM": false,
+    "DPM_DCM": false,
+    "VPB_DCM": false,
+    "FRT_DCM": false,
+    "BSR_DCM": false,
+    "VDS_DCM": false,
+    "FRT_GVR": false,
+    "CEO_GVR": false,
+    "DGW_GVR": false,
+    "VPB_GVR": false,
+    "VIX_GVR": false,
+    "LPB_GVR": false,
+    "CTP_GVR": false,
+    "VCG_GVR": false,
+    "DPR_GVR": false,
+    "GVR_GVR": false,
+    "BFC_GVR": false,
+    "OIL_GVR": false
+  },
+  "last_run": "2026-10-05 09:33:30.110724+07:00"
+}
