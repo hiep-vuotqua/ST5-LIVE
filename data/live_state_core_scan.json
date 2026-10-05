@@ -1,11 +1,19 @@
 {
-  "positions": {},
-  "cash": 1000000000,
+  "positions": {
+    "HSL_DCM": {
+      "entry_date": "2026-10-05",
+      "entry_price": 9.3,
+      "size": 150000000,
+      "tier": "A",
+      "volr": 3.33
+    }
+  },
+  "cash": 850000000,
   "peak_equity": 1000000000,
   "last_signals": {
     "CTS_DCM": false,
     "DGW_DCM": false,
-    "HSL_DCM": false,
+    "HSL_DCM": true,
     "CII_DCM": false,
     "CEO_DCM": false,
     "MCH_DCM": false,
@@ -27,5 +35,5 @@
     "BFC_GVR": false,
     "OIL_GVR": false
   },
-  "last_run": "2026-10-05 09:46:56.011289+07:00"
+  "last_run": "2026-10-05 13:37:19.542230+07:00"
 }
