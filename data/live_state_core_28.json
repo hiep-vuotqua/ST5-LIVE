@@ -32,10 +32,12 @@
     ]
   },
   "CTP": {
-    "in_position": false,
-    "buy_date": null,
-    "buy_price": null,
-    "alerted_buy_dates": [],
+    "in_position": true,
+    "buy_date": "2026-10-06",
+    "buy_price": 7.5,
+    "alerted_buy_dates": [
+      "2026-10-06"
+    ],
     "alerted_sell_dates": []
   },
   "MFS": {
