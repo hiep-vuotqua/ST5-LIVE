@@ -26,8 +26,8 @@
   "peak_equity": 1000000000,
   "last_signals": {
     "CTS_DCM": false,
-    "DGW_DCM": true,
-    "HSL_DCM": true,
+    "DGW_DCM": false,
+    "HSL_DCM": false,
     "CII_DCM": false,
     "CEO_DCM": false,
     "MCH_DCM": false,
@@ -46,8 +46,8 @@
     "VCG_GVR": false,
     "DPR_GVR": false,
     "GVR_GVR": false,
-    "BFC_GVR": true,
+    "BFC_GVR": false,
     "OIL_GVR": false
   },
-  "last_run": "2026-10-05 14:59:02.779819+07:00"
+  "last_run": "2026-10-06 09:46:24.747063+07:00"
 }
