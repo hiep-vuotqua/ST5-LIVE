@@ -46,8 +46,8 @@
     "VCG_GVR": false,
     "DPR_GVR": false,
     "GVR_GVR": false,
-    "BFC_GVR": false,
+    "BFC_GVR": true,
     "OIL_GVR": false
   },
-  "last_run": "2026-10-06 13:31:32.419018+07:00"
+  "last_run": "2026-10-06 14:58:28.730302+07:00"
 }
