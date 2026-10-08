@@ -20,9 +20,16 @@
       "size": 100000000,
       "tier": "B",
       "volr": 1.9
+    },
+    "BFC_GVR": {
+      "entry_date": "2026-10-08",
+      "entry_price": 62.4,
+      "size": 100000000,
+      "tier": "B",
+      "volr": 1.79
     }
   },
-  "cash": 654347826.0869565,
+  "cash": 554347826.0869565,
   "peak_equity": 1000000000,
   "last_signals": {
     "CTS_DCM": false,
@@ -46,8 +53,8 @@
     "VCG_GVR": false,
     "DPR_GVR": false,
     "GVR_GVR": false,
-    "BFC_GVR": false,
+    "BFC_GVR": true,
     "OIL_GVR": false
   },
-  "last_run": "2026-10-08 09:45:21.426590+07:00"
+  "last_run": "2026-10-08 13:34:18.222208+07:00"
 }
