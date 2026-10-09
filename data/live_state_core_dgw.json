@@ -117,7 +117,7 @@
     "in_position": false,
     "buy_date": null,
     "buy_price": null,
-    "last_processed_date": "2026-10-08"
+    "last_processed_date": "2026-10-09"
   },
   "CTP": {
     "pending_buy": false,
@@ -136,8 +136,8 @@
     "last_processed_date": "2026-10-09"
   },
   "VPB": {
-    "pending_buy": false,
-    "signal_date": null,
+    "pending_buy": true,
+    "signal_date": "2026-10-09",
     "in_position": false,
     "buy_date": null,
     "buy_price": null,
