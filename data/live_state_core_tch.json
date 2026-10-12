@@ -1,23 +1,27 @@
 {
   "NHA": {
-    "in_position": true,
-    "buy_date": "2026-10-01",
-    "buy_price": 7.29,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
     "last_update": "2026-09-11T14:45:00+07:00",
     "alerted_buy_dates": [
       "2026-10-01"
     ],
-    "alerted_sell_dates": []
+    "alerted_sell_dates": [
+      "2026-10-12"
+    ]
   },
   "FRT": {
-    "in_position": true,
-    "buy_date": "2026-09-30",
-    "buy_price": 145.4,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
     "last_update": "2026-09-11T14:45:00+07:00",
     "alerted_buy_dates": [
       "2026-09-30"
     ],
-    "alerted_sell_dates": []
+    "alerted_sell_dates": [
+      "2026-10-12"
+    ]
   },
   "CIG": {
     "in_position": false,
@@ -96,14 +100,16 @@
     "alerted_sell_dates": []
   },
   "SAS": {
-    "in_position": true,
-    "buy_date": "2026-10-02",
-    "buy_price": 34.3,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
     "last_update": "2026-09-11T14:30:00+07:00",
     "alerted_buy_dates": [
       "2026-10-02"
     ],
-    "alerted_sell_dates": []
+    "alerted_sell_dates": [
+      "2026-10-12"
+    ]
   },
   "HAH": {
     "in_position": true,
