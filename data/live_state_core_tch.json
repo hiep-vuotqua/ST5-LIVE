@@ -100,12 +100,13 @@
     "alerted_sell_dates": []
   },
   "SAS": {
-    "in_position": false,
-    "buy_date": null,
-    "buy_price": null,
+    "in_position": true,
+    "buy_date": "2026-10-12",
+    "buy_price": 37.4,
     "last_update": "2026-09-11T14:30:00+07:00",
     "alerted_buy_dates": [
-      "2026-10-02"
+      "2026-10-02",
+      "2026-10-12"
     ],
     "alerted_sell_dates": [
       "2026-10-12"
@@ -292,11 +293,12 @@
     "alerted_sell_dates": []
   },
   "VPB": {
-    "in_position": false,
-    "buy_date": null,
-    "buy_price": null,
+    "in_position": true,
+    "buy_date": "2026-10-12",
+    "buy_price": 24.45,
     "alerted_buy_dates": [
-      "2026-09-25"
+      "2026-09-25",
+      "2026-10-12"
     ],
     "alerted_sell_dates": [
       "2026-10-05"
