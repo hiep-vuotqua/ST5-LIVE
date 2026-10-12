@@ -60,25 +60,28 @@
     "alerted_sell_dates": []
   },
   "FRT": {
-    "in_position": true,
-    "buy_date": "2026-10-07",
-    "buy_price": 150.0,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
     "alerted_buy_dates": [
       "2026-09-29",
       "2026-10-07"
     ],
     "alerted_sell_dates": [
-      "2026-10-05"
+      "2026-10-05",
+      "2026-10-12"
     ]
   },
   "NHA": {
-    "in_position": true,
-    "buy_date": "2026-10-05",
-    "buy_price": 8.04,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
     "alerted_buy_dates": [
       "2026-10-05"
     ],
-    "alerted_sell_dates": []
+    "alerted_sell_dates": [
+      "2026-10-12"
+    ]
   },
   "VNA": {
     "in_position": false,
