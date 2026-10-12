@@ -106,22 +106,26 @@
     "alerted_sell_dates": []
   },
   "HVT": {
-    "in_position": true,
-    "buy_date": "2026-10-08",
-    "buy_price": 24.0,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
     "alerted_buy_dates": [
       "2026-10-08"
     ],
-    "alerted_sell_dates": []
+    "alerted_sell_dates": [
+      "2026-10-12"
+    ]
   },
   "SGP": {
-    "in_position": true,
-    "buy_date": "2026-10-08",
-    "buy_price": 21.6,
+    "in_position": false,
+    "buy_date": null,
+    "buy_price": null,
     "alerted_buy_dates": [
       "2026-10-08"
     ],
-    "alerted_sell_dates": []
+    "alerted_sell_dates": [
+      "2026-10-12"
+    ]
   },
   "TCO": {
     "in_position": false,
@@ -138,10 +142,12 @@
     "alerted_sell_dates": []
   },
   "MVC": {
-    "in_position": false,
-    "buy_date": null,
-    "buy_price": null,
-    "alerted_buy_dates": [],
+    "in_position": true,
+    "buy_date": "2026-10-12",
+    "buy_price": 13.0,
+    "alerted_buy_dates": [
+      "2026-10-12"
+    ],
     "alerted_sell_dates": []
   },
   "HLD": {
