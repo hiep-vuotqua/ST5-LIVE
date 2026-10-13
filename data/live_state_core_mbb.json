@@ -7,12 +7,13 @@
     "alerted_sell_dates": []
   },
   "FRT": {
-    "in_position": false,
-    "buy_date": null,
-    "buy_price": null,
+    "in_position": true,
+    "buy_date": "2026-10-13",
+    "buy_price": 143.8,
     "alerted_buy_dates": [
       "2026-09-24",
-      "2026-10-01"
+      "2026-10-01",
+      "2026-10-13"
     ],
     "alerted_sell_dates": [
       "2026-10-01",
@@ -63,11 +64,12 @@
     "alerted_sell_dates": []
   },
   "CTP": {
-    "in_position": false,
-    "buy_date": null,
-    "buy_price": null,
+    "in_position": true,
+    "buy_date": "2026-10-13",
+    "buy_price": 7.4,
     "alerted_buy_dates": [
-      "2026-10-02"
+      "2026-10-02",
+      "2026-10-13"
     ],
     "alerted_sell_dates": [
       "2026-10-09"
