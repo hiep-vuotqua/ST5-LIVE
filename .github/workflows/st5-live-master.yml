@@ -1,0 +1,53 @@
+name: ST5 LIVE MASTER
+
+on:
+  schedule:
+    - cron: "45 2 * * 1-5"    # 9:45 VN
+    - cron: "30 3 * * 1-5"    # 10:30 VN
+    - cron: "15 4 * * 1-5"    # 11:15 VN
+    - cron: "30 6 * * 1-5"    # 13:30 VN
+    - cron: "0 7 * * 1-5"     # 14:00 VN
+    - cron: "20 7 * * 1-5"    # 14:20 VN
+  workflow_dispatch:
+
+concurrency:
+  group: st5-live-master
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install -q -r requirements.txt
+      - name: Run master
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          VNSTOCK_TELEMETRY:  "off"
+        run: |
+          cd Scr
+          python main_master.py
+      - name: Commit state
+        continue-on-error: true
+        run: |
+          git config user.name "ST5 Bot"
+          git config user.email "bot@st5.local"
+          STATE_FILE="data/live_state_master.json"
+          if [ ! -f "$STATE_FILE" ]; then echo "{}" > "$STATE_FILE"; fi
+          git add "$STATE_FILE"
+          git diff --staged --quiet || git commit -m "Update MASTER state $(date -u +'%Y-%m-%d %H:%M UTC')"
+          for i in 1 2 3; do
+            echo "=== Push attempt $i/3 ==="
+            git pull --rebase -X theirs origin main && break
+            echo "Rebase failed, retrying..."
+            git rebase --abort 2>/dev/null || true
+            sleep 10
+          done
+          git push || echo "Push failed after 3 attempts"
