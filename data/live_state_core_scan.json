@@ -63,12 +63,12 @@
     "VPB_GVR": false,
     "VIX_GVR": false,
     "LPB_GVR": false,
-    "CTP_GVR": true,
+    "CTP_GVR": false,
     "VCG_GVR": false,
     "DPR_GVR": false,
     "GVR_GVR": false,
     "BFC_GVR": false,
     "OIL_GVR": false
   },
-  "last_run": "2026-10-13 22:18:03.488178+07:00"
+  "last_run": "2026-10-14 14:56:37.601902+07:00"
 }
