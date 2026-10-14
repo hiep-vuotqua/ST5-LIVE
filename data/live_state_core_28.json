@@ -107,11 +107,12 @@
     "alerted_sell_dates": []
   },
   "HVT": {
-    "in_position": false,
-    "buy_date": null,
-    "buy_price": null,
+    "in_position": true,
+    "buy_date": "2026-10-14",
+    "buy_price": 23.9,
     "alerted_buy_dates": [
-      "2026-10-08"
+      "2026-10-08",
+      "2026-10-14"
     ],
     "alerted_sell_dates": [
       "2026-10-12"
@@ -195,10 +196,12 @@
     "alerted_sell_dates": []
   },
   "NKG": {
-    "in_position": false,
-    "buy_date": null,
-    "buy_price": null,
-    "alerted_buy_dates": [],
+    "in_position": true,
+    "buy_date": "2026-10-14",
+    "buy_price": 10.5,
+    "alerted_buy_dates": [
+      "2026-10-14"
+    ],
     "alerted_sell_dates": []
   },
   "NVL": {
