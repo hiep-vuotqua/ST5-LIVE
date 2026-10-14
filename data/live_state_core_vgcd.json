@@ -133,9 +133,9 @@
     "bars_held": 0
   },
   "C69": {
-    "in_position": false,
-    "entry_price": null,
-    "entry_date": null,
+    "in_position": true,
+    "entry_price": 18.2,
+    "entry_date": "2026-10-14",
     "entry_i": null,
     "bars_held": 0
   },
