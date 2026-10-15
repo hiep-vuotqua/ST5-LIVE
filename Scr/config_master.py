@@ -1,36 +1,57 @@
 """
-ST5 MASTER — gộp 6 bot (7 rules)
-CORE-28, CORE-30, CORE-DGW, CORE-MBB, CORE-TCH, CORE-SCAN (DCM + GVR)
+ST5 MASTER v2 — sau khi lọc thanh khoản
+Cập nhật: 2026-10-15
+Filter: loại 25 mã có GTGD 200 phiên < ngưỡng an toàn (xem FILTER_NOTE)
 Cron: 9:45 / 10:30 / 11:15 / 13:30 / 14:00 / 14:20 VN
 """
 
+# ============================================================
+# FILTER NOTE (đọc trước khi sửa)
+# Ngày filter: 2026-10-15
+# Ngưỡng: GTGD trung bình 200 phiên gần nhất
+# Lý do: mã GTGD thấp → mua 100tr khó khớp 1 phiên, bán càng khó
+#         (khớp muộn → lỡ MH exit → thua lỗ không kiểm soát)
+# Refresh: nên chạy lại filter mỗi 6 tháng, so sánh list bỏ
+# 25 mã đã loại: CIG CTP FDC HLD HVT ICG KDM LGL MCG MFS MVC
+#                NAG PMG PSB SAS SAV SCI SEA SLS TA9 TDH TMT VFG
+#                VLG VNA
+# ============================================================
+
 RULES = {
     "CORE-28": dict(
-        tickers=["PMG","VFG","GEX","ABB","CTP","MFS","TMT","APS","PSB","SCI","SEA","TDH","VLG","LGL","HVT","SGP","TCO","KDM","MVC","HLD","ICG","IDJ","VDS","HCM","BVS","NKG","NVL","KDC"],
+        # Bỏ 16 mã: PMG VFG CTP MFS TMT PSB SCI SEA TDH VLG LGL HVT KDM MVC HLD ICG
+        tickers=["GEX","ABB","APS","SGP","TCO","IDJ","VDS","HCM","BVS","NKG","NVL","KDC"],
         volr=1.2, roc=3.0, macd=0.0, adx=16.0, ma200=False, ma50=True, mh=3,
     ),
     "CORE-30": dict(
-        tickers=["ABB","HCM","NKG","IDJ","NVL","SSI","CTS","CTR","FRT","NHA","VNA","LGL"],
+        # Bỏ 2 mã: VNA LGL
+        tickers=["ABB","HCM","NKG","IDJ","NVL","SSI","CTS","CTR","FRT","NHA"],
         volr=1.2, roc=3.0, macd=0.0, adx=20.0, ma200=False, ma50=True, mh=5,
     ),
     "CORE-DGW": dict(
-        tickers=["VGI","TA9","SCL","CSV","LPB","VTP","NAG","SJS","DCM","DPM","BCM","TVS","DGW","MCG","SCI","CTP","APG","VPB","HLD"],
+        # Bỏ 6 mã: TA9 NAG MCG SCI CTP HLD
+        tickers=["VGI","SCL","CSV","LPB","VTP","SJS","DCM","DPM","BCM","TVS","DGW","APG","VPB"],
         volr=0.8, roc=1.5, macd=-0.5, adx=25.0, ma200=False, ma50=False, mh=7,
     ),
     "CORE-MBB": dict(
-        tickers=["SSI","FRT","MWG","IMP","DVP","BSR","SCI","CTP","APG"],
+        # Bỏ 2 mã: SCI CTP
+        tickers=["SSI","FRT","MWG","IMP","DVP","BSR","APG"],
         volr=1.0, roc=1.0, macd=-0.5, adx=15.0, ma200=True, ma50=False, mh=7,
     ),
     "CORE-TCH": dict(
-        tickers=["NHA","FRT","FDC","CIG","SAV","ABB","SCL","MBS","APG","SJS","SLS","SAS","HAH","SIP","CTR","MCH","STB","BCM","HTN","GEG","SCI","CTP","VPB","HLD","LGL","VDS","APS","PSB","TMT","TCO"],
+        # Bỏ 11 mã: FDC CIG SAV SLS SAS SCI CTP HLD LGL PSB TMT
+        tickers=["NHA","FRT","ABB","SCL","MBS","APG","SJS","HAH","SIP","CTR","MCH",
+                 "STB","BCM","HTN","GEG","VPB","VDS","APS","TCO"],
         volr=1.2, roc=2.0, macd=0.0, adx=18.0, ma200=False, ma50=False, mh=10,
     ),
     "CORE-SCAN-DCM": dict(
+        # Không bỏ mã nào
         tickers=["CTS","DGW","HSL","CII","CEO","MCH","DPM","VPB","FRT","BSR","VDS"],
         volr=1.5, roc=4.0, macd=0.0, adx=19.0, ma200=True, ma50=True, mh=3,
     ),
     "CORE-SCAN-GVR": dict(
-        tickers=["FRT","CEO","DGW","VPB","VIX","LPB","CTP","VCG","DPR","GVR","BFC","OIL"],
+        # Bỏ 1 mã: CTP
+        tickers=["FRT","CEO","DGW","VPB","VIX","LPB","VCG","DPR","GVR","BFC","OIL"],
         volr=1.2, roc=4.0, macd=0.0, adx=27.0, ma200=False, ma50=False, mh=3,
     ),
 }
