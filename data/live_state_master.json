@@ -97,12 +97,12 @@
     "VDS__CORE-28": false,
     "HCM__CORE-28": false,
     "BVS__CORE-28": false,
-    "NKG__CORE-28": false,
+    "NKG__CORE-28": true,
     "NVL__CORE-28": false,
     "KDC__CORE-28": false,
     "ABB__CORE-30": false,
     "HCM__CORE-30": false,
-    "NKG__CORE-30": false,
+    "NKG__CORE-30": true,
     "IDJ__CORE-30": false,
     "NVL__CORE-30": false,
     "SSI__CORE-30": false,
@@ -195,5 +195,5 @@
     "OIL__CORE-SCAN-GVR": false
   },
   "cash": 0,
-  "last_run": "2026-10-15 10:31:11.982672+07:00"
+  "last_run": "2026-10-15 11:15:55.091851+07:00"
 }
