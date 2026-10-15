@@ -34,6 +34,41 @@
       "size": 100000000,
       "volr": 1.12,
       "adx": 30.45
+    },
+    "CTP__CORE-28": {
+      "entry_date": "2026-10-15",
+      "entry_price": 7.9,
+      "size": 100000000,
+      "volr": 1.8,
+      "adx": 30.49
+    },
+    "CTP__CORE-DGW": {
+      "entry_date": "2026-10-15",
+      "entry_price": 7.9,
+      "size": 100000000,
+      "volr": 1.8,
+      "adx": 30.49
+    },
+    "CTP__CORE-MBB": {
+      "entry_date": "2026-10-15",
+      "entry_price": 7.9,
+      "size": 100000000,
+      "volr": 1.8,
+      "adx": 30.49
+    },
+    "CTP__CORE-TCH": {
+      "entry_date": "2026-10-15",
+      "entry_price": 7.9,
+      "size": 100000000,
+      "volr": 1.8,
+      "adx": 30.49
+    },
+    "CTP__CORE-SCAN-GVR": {
+      "entry_date": "2026-10-15",
+      "entry_price": 7.9,
+      "size": 100000000,
+      "volr": 1.8,
+      "adx": 30.49
     }
   },
   "last_signals": {
@@ -41,7 +76,7 @@
     "VFG__CORE-28": false,
     "GEX__CORE-28": false,
     "ABB__CORE-28": false,
-    "CTP__CORE-28": false,
+    "CTP__CORE-28": true,
     "MFS__CORE-28": false,
     "TMT__CORE-28": false,
     "APS__CORE-28": false,
@@ -51,7 +86,7 @@
     "TDH__CORE-28": false,
     "VLG__CORE-28": false,
     "LGL__CORE-28": false,
-    "HVT__CORE-28": true,
+    "HVT__CORE-28": false,
     "SGP__CORE-28": false,
     "TCO__CORE-28": false,
     "KDM__CORE-28": false,
@@ -62,12 +97,12 @@
     "VDS__CORE-28": false,
     "HCM__CORE-28": false,
     "BVS__CORE-28": false,
-    "NKG__CORE-28": true,
+    "NKG__CORE-28": false,
     "NVL__CORE-28": false,
     "KDC__CORE-28": false,
     "ABB__CORE-30": false,
     "HCM__CORE-30": false,
-    "NKG__CORE-30": true,
+    "NKG__CORE-30": false,
     "IDJ__CORE-30": false,
     "NVL__CORE-30": false,
     "SSI__CORE-30": false,
@@ -83,7 +118,7 @@
     "CSV__CORE-DGW": true,
     "LPB__CORE-DGW": false,
     "VTP__CORE-DGW": false,
-    "NAG__CORE-DGW": true,
+    "NAG__CORE-DGW": false,
     "SJS__CORE-DGW": false,
     "DCM__CORE-DGW": false,
     "DPM__CORE-DGW": false,
@@ -92,7 +127,7 @@
     "DGW__CORE-DGW": false,
     "MCG__CORE-DGW": false,
     "SCI__CORE-DGW": false,
-    "CTP__CORE-DGW": false,
+    "CTP__CORE-DGW": true,
     "APG__CORE-DGW": false,
     "VPB__CORE-DGW": false,
     "HLD__CORE-DGW": false,
@@ -103,7 +138,7 @@
     "DVP__CORE-MBB": false,
     "BSR__CORE-MBB": false,
     "SCI__CORE-MBB": false,
-    "CTP__CORE-MBB": false,
+    "CTP__CORE-MBB": true,
     "APG__CORE-MBB": false,
     "NHA__CORE-TCH": false,
     "FRT__CORE-TCH": false,
@@ -126,7 +161,7 @@
     "HTN__CORE-TCH": false,
     "GEG__CORE-TCH": false,
     "SCI__CORE-TCH": false,
-    "CTP__CORE-TCH": false,
+    "CTP__CORE-TCH": true,
     "VPB__CORE-TCH": false,
     "HLD__CORE-TCH": false,
     "LGL__CORE-TCH": false,
@@ -152,13 +187,13 @@
     "VPB__CORE-SCAN-GVR": false,
     "VIX__CORE-SCAN-GVR": false,
     "LPB__CORE-SCAN-GVR": false,
-    "CTP__CORE-SCAN-GVR": false,
+    "CTP__CORE-SCAN-GVR": true,
     "VCG__CORE-SCAN-GVR": false,
     "DPR__CORE-SCAN-GVR": false,
     "GVR__CORE-SCAN-GVR": false,
     "BFC__CORE-SCAN-GVR": false,
     "OIL__CORE-SCAN-GVR": false
   },
-  "cash": 500000000,
-  "last_run": "2026-10-14 21:24:45.038851+07:00"
+  "cash": 0,
+  "last_run": "2026-10-15 09:46:11.355751+07:00"
 }
