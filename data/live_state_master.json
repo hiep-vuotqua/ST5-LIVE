@@ -188,12 +188,12 @@
     "VIX__CORE-SCAN-GVR": false,
     "LPB__CORE-SCAN-GVR": false,
     "CTP__CORE-SCAN-GVR": true,
-    "VCG__CORE-SCAN-GVR": false,
+    "VCG__CORE-SCAN-GVR": true,
     "DPR__CORE-SCAN-GVR": false,
     "GVR__CORE-SCAN-GVR": false,
     "BFC__CORE-SCAN-GVR": false,
     "OIL__CORE-SCAN-GVR": false
   },
   "cash": 0,
-  "last_run": "2026-10-16 13:31:04.499210+07:00"
+  "last_run": "2026-10-16 14:01:16.746988+07:00"
 }
