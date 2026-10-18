@@ -13,37 +13,58 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
 from config_b1full import B1FULL_RULES, CAPITAL_ALLOC, TRAIL_PCT, TELEGRAM_PREFIX
 
-# ---------- INDICATORS (fallback nếu không import được) ----------
+# ---------- INDICATORS ----------
+# Base indicators.py của repo (nếu có) — dùng làm nền
 try:
-    from indicators import add_v14_indicators
+    from indicators import add_v14_indicators as _base_ind
 except ImportError:
-    def volume_ratio(df, period=20):
-        return df["Volume"] / df["Volume"].rolling(period).mean()
-    def roc10(df):
-        return df["Close"].pct_change(10) * 100.0
-    def macd_hist(df):
-        e12 = df["Close"].ewm(span=12, adjust=False).mean()
-        e26 = df["Close"].ewm(span=26, adjust=False).mean()
+    _base_ind = None
+
+def _calc_adx(df, period=14):
+    h, l, c = df["High"], df["Low"], df["Close"]
+    up = h.diff(); dn = -l.diff()
+    pdm = np.where((up > dn) & (up > 0), up, 0.0)
+    mdm = np.where((dn > up) & (dn > 0), dn, 0.0)
+    tr = pd.concat([h-l, (h-c.shift()).abs(), (l-c.shift()).abs()], axis=1).max(axis=1)
+    atr = tr.ewm(alpha=1/period, adjust=False).mean()
+    pdi = pd.Series(pdm, index=df.index).ewm(alpha=1/period, adjust=False).mean() / atr * 100
+    mdi = pd.Series(mdm, index=df.index).ewm(alpha=1/period, adjust=False).mean() / atr * 100
+    dx = (pdi - mdi).abs() / (pdi + mdi).replace(0, np.nan) * 100
+    return dx.ewm(alpha=1/period, adjust=False).mean()
+
+def prepare(df):
+    """
+    Enrich DataFrame với tất cả cột cần cho signal check:
+    VolR, ROC10, MACD_Hist, ADX14, MA50, MA200.
+    Dùng indicators.py của repo nếu có, sau đó fill missing columns.
+    """
+    d = df.copy()
+    # 1) Gọi base indicators.py (nếu import được)
+    if _base_ind is not None:
+        try:
+            d = _base_ind(d)
+        except Exception as e:
+            print(f"    [warn] base indicators fail: {e}")
+    # 2) Đảm bảo từng cột cần thiết có mặt
+    if "VolR" not in d.columns:
+        if "VolumeRatio" in d.columns:
+            d["VolR"] = d["VolumeRatio"]
+        else:
+            d["VolR"] = d["Volume"] / d["Volume"].rolling(20).mean()
+    if "ROC10" not in d.columns:
+        d["ROC10"] = d["Close"].pct_change(10) * 100.0
+    if "MACD_Hist" not in d.columns:
+        e12 = d["Close"].ewm(span=12, adjust=False).mean()
+        e26 = d["Close"].ewm(span=26, adjust=False).mean()
         m = e12 - e26
-        return m - m.ewm(span=9, adjust=False).mean()
-    def adx14(df, period=14):
-        h, l, c = df["High"], df["Low"], df["Close"]
-        up = h.diff(); dn = -l.diff()
-        pdm = np.where((up > dn) & (up > 0), up, 0.0)
-        mdm = np.where((dn > up) & (dn > 0), dn, 0.0)
-        tr = pd.concat([h-l, (h-c.shift()).abs(), (l-c.shift()).abs()], axis=1).max(axis=1)
-        atr = tr.ewm(alpha=1/period, adjust=False).mean()
-        pdi = pd.Series(pdm, index=df.index).ewm(alpha=1/period, adjust=False).mean() / atr * 100
-        mdi = pd.Series(mdm, index=df.index).ewm(alpha=1/period, adjust=False).mean() / atr * 100
-        dx = (pdi - mdi).abs() / (pdi + mdi).replace(0, np.nan) * 100
-        return dx.ewm(alpha=1/period, adjust=False).mean()
-    def add_v14_indicators(df):
-        d = df.copy()
-        d["VolR"] = volume_ratio(d); d["ROC10"] = roc10(d)
-        d["MACD_Hist"] = macd_hist(d); d["ADX14"] = adx14(d)
+        d["MACD_Hist"] = m - m.ewm(span=9, adjust=False).mean()
+    if "ADX14" not in d.columns:
+        d["ADX14"] = _calc_adx(d)
+    if "MA50" not in d.columns:
         d["MA50"] = d["Close"].rolling(50).mean()
+    if "MA200" not in d.columns:
         d["MA200"] = d["Close"].rolling(200).mean()
-        return d
+    return d
 
 # ---------- PULL DATA ----------
 try:
@@ -116,17 +137,27 @@ def save_state(s):
 
 # ---------- SIGNAL ----------
 def check_signal(row, cfg):
-    if pd.isna(row["ADX14"]) or pd.isna(row["VolR"]) or pd.isna(row["ROC10"]):
-        return False
+    for col in ["ADX14", "VolR", "ROC10"]:
+        if col not in row.index or pd.isna(row[col]):
+            return False
     if row["ADX14"] < cfg["adx"]: return False
     if row["VolR"]  < cfg["volr"]: return False
     if row["ROC10"] < cfg["roc"]: return False
-    if cfg["macd"] is not None and (pd.isna(row["MACD_Hist"]) or row["MACD_Hist"] <= cfg["macd"]):
-        return False
-    if cfg["ma50"] and (pd.isna(row["MA50"]) or row["Close"] <= row["MA50"]):
-        return False
-    if cfg["ma200"] and (pd.isna(row["MA200"]) or row["Close"] <= row["MA200"]):
-        return False
+    if cfg["macd"] is not None:
+        if "MACD_Hist" not in row.index or pd.isna(row["MACD_Hist"]):
+            return False
+        if row["MACD_Hist"] <= cfg["macd"]:
+            return False
+    if cfg["ma50"]:
+        if "MA50" not in row.index or pd.isna(row["MA50"]):
+            return False
+        if row["Close"] <= row["MA50"]:
+            return False
+    if cfg["ma200"]:
+        if "MA200" not in row.index or pd.isna(row["MA200"]):
+            return False
+        if row["Close"] <= row["MA200"]:
+            return False
     return True
 
 # ---------- MAIN ----------
@@ -149,7 +180,7 @@ def main():
             print("no data / <210 rows")
             errors.append(ticker)
             continue
-        df = add_v14_indicators(df)
+        df = prepare(df)
         last = df.iloc[-1]
 
         # ===== ĐANG CÓ POSITION =====
@@ -249,4 +280,43 @@ def main():
     send_telegram(msg)
 
 if __name__ == "__main__":
+    main()Run python Scr/main_b1full.py
+[2026-10-18 17:17] B1FULL — state 0/10 | TRAIL=10.0%
+
+[vnstock] Thư viện gửi số liệu đo lường tuỳ chọn (tên hàm, thời gian chạy, lỗi) để cải thiện sản phẩm.
+          Không thu thập giá trị tham số bạn truyền vào, gồm mã chứng khoán và khoảng thời gian tra cứu.
+          Tắt: đặt VNSTOCK_TELEMETRY=off hoặc gọi vnai.disable_telemetry()
+          Chi tiết: https://vnstocks.com/onboard/chinh-sach-quyen-rieng-tu
+Traceback (most recent call last):
+  pull ACV... Đăng ký khoá API bản Cộng đồng: vnstocks.com/login → vnai.setup_api_key('key') | 📚 Tài liệu: vnstocks.com/docs | Chương trình Vnstock Sponsor: vnstocks.com/insiders-program
+  File "/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3812, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7088, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7096, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'VolR'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/work/ST5-LIVE/ST5-LIVE/Scr/main_b1full.py", line 252, in <module>
     main()
+  File "/home/runner/work/ST5-LIVE/ST5-LIVE/Scr/main_b1full.py", line 191, in main
+    if check_signal(last, cfg):
+       ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/ST5-LIVE/ST5-LIVE/Scr/main_b1full.py", line 119, in check_signal
+    if pd.isna(row["ADX14"]) or pd.isna(row["VolR"]) or pd.isna(row["ROC10"]):
+                                        ~~~^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/pandas/core/series.py", line 1133, in __getitem__
+    return self._get_value(key)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/pandas/core/series.py", line 1249, in _get_value
+    loc = self.index.get_loc(label)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3819, in get_loc
+    raise KeyError(key) from err
+KeyError: 'VolR'
+Error: Process completed with exit code 1.
+ 
