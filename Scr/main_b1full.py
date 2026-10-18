@@ -280,43 +280,4 @@ def main():
     send_telegram(msg)
 
 if __name__ == "__main__":
-    main()Run python Scr/main_b1full.py
-[2026-10-18 17:17] B1FULL — state 0/10 | TRAIL=10.0%
-
-[vnstock] Thư viện gửi số liệu đo lường tuỳ chọn (tên hàm, thời gian chạy, lỗi) để cải thiện sản phẩm.
-          Không thu thập giá trị tham số bạn truyền vào, gồm mã chứng khoán và khoảng thời gian tra cứu.
-          Tắt: đặt VNSTOCK_TELEMETRY=off hoặc gọi vnai.disable_telemetry()
-          Chi tiết: https://vnstocks.com/onboard/chinh-sach-quyen-rieng-tu
-Traceback (most recent call last):
-  pull ACV... Đăng ký khoá API bản Cộng đồng: vnstocks.com/login → vnai.setup_api_key('key') | 📚 Tài liệu: vnstocks.com/docs | Chương trình Vnstock Sponsor: vnstocks.com/insiders-program
-  File "/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3812, in get_loc
-    return self._engine.get_loc(casted_key)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "pandas/_libs/index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
-  File "pandas/_libs/index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
-  File "pandas/_libs/hashtable_class_helper.pxi", line 7088, in pandas._libs.hashtable.PyObjectHashTable.get_item
-  File "pandas/_libs/hashtable_class_helper.pxi", line 7096, in pandas._libs.hashtable.PyObjectHashTable.get_item
-KeyError: 'VolR'
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "/home/runner/work/ST5-LIVE/ST5-LIVE/Scr/main_b1full.py", line 252, in <module>
     main()
-  File "/home/runner/work/ST5-LIVE/ST5-LIVE/Scr/main_b1full.py", line 191, in main
-    if check_signal(last, cfg):
-       ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/runner/work/ST5-LIVE/ST5-LIVE/Scr/main_b1full.py", line 119, in check_signal
-    if pd.isna(row["ADX14"]) or pd.isna(row["VolR"]) or pd.isna(row["ROC10"]):
-                                        ~~~^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/pandas/core/series.py", line 1133, in __getitem__
-    return self._get_value(key)
-           ^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/pandas/core/series.py", line 1249, in _get_value
-    loc = self.index.get_loc(label)
-          ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3819, in get_loc
-    raise KeyError(key) from err
-KeyError: 'VolR'
-Error: Process completed with exit code 1.
- 
