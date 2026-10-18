@@ -1,0 +1,33 @@
+name: ST5 B1FULL
+on:
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: Install
+        run: pip install -r requirements.txt
+      - name: Run bot
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python Scr/main_b1full.py
+      - name: Commit state
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          for i in 1 2 3; do
+            git pull --rebase -X theirs || true
+            git add data/live_state_b1full.json
+            git diff --staged --quiet && exit 0
+            git commit -m "B1FULL state $(date -u +%Y-%m-%d_%H:%M)" || true
+            git push && exit 0
+            echo "retry $i..."
+            sleep 3
+          done
+          exit 1
