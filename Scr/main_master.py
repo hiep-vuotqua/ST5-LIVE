@@ -1,5 +1,6 @@
 """
 ST5 MASTER — chạy 7 rule, gộp signal, gửi 1 tin Telegram
+Đã fix: Chống mua trùng mã (dồn tiền vào 1 mã), thêm Heartbeat.
 """
 import os, sys, json, time, csv
 from datetime import datetime, timedelta
@@ -26,7 +27,7 @@ if now.weekday() >= 5:
     print("Cuối tuần — bỏ qua")
     sys.exit(0)
 
-# Load state
+# ============ LOAD STATE ============
 state = {"positions": {}, "last_signals": {}, "cash": CAPITAL_INITIAL, "last_run": None}
 if os.path.exists(state_path):
     try:
@@ -100,6 +101,14 @@ for rule_name, rule in RULES.items():
             pos = state["positions"].get(key)
             
             if sig and not prev and not pos:
+                # FIX LỖI MUA TRÙNG MÃ: Nếu mã này đã nằm trong danh mục (bất kể rule nào) thì bỏ qua
+                already_held = any(k.startswith(f"{tk}__") for k in state["positions"])
+                
+                if already_held:
+                    print(f"  [{tk}] BUY signal ({rule_name}) but ALREADY HELD another rule — skipped")
+                    state["last_signals"][key] = sig
+                    continue
+                
                 if len(state["positions"]) < MAX_POSITIONS and state["cash"] >= POSITION_SIZE:
                     state["cash"] -= POSITION_SIZE
                     state["positions"][key] = {
@@ -113,7 +122,7 @@ for rule_name, rule in RULES.items():
                         "rule": rule_name, "action": "BUY",
                         "volr": r["VolumeRatio"], "adx": r["ADX14"], "roc": r["ROC10"],
                     })
-                    print(f"  [{tk}] BUY  volR={r['VolumeRatio']:.2f} ADX={r['ADX14']:.1f}")
+                    print(f"  [{tk}] BUY {rule_name} volR={r['VolumeRatio']:.2f} ADX={r['ADX14']:.1f}")
                 else:
                     print(f"  [{tk}] BUY signal but full/cash — skipped")
             elif (not sig) and prev and pos:
@@ -141,7 +150,7 @@ state["last_run"] = str(now)
 buys = {tk: sigs for tk, sigs in signal_map.items() if any(s["action"]=="BUY" for s in sigs)}
 sells = {tk: sigs for tk, sigs in signal_map.items() if any(s["action"]=="SELL" for s in sigs)}
 
-# Save state
+# Lưu State
 with open(state_path, "w") as f:
     json.dump(state, f, indent=2, ensure_ascii=False)
 
@@ -170,68 +179,11 @@ if buys or sells:
     lines.append(f"\n💰 Cash: {state['cash']/1e9:.4f} tỷ | Pos: {len(state['positions'])}")
     send_telegram("\n".join(lines))
 else:
-    print("\nKhông có tín hiệu mới")
+    # HEARTBEAT: Báo cáo trạng thái nếu không có tín hiệu
+    msg = f"🤖 <b>{TELEGRAM_TITLE}</b> — {now.strftime('%H:%M')}\n"
+    msg += f"Trạng thái: Không có tín hiệu mới.\n"
+    msg += f"💰 Cash: {state['cash']/1e9:.4f} tỷ | Đang giữ: {len(state['positions'])} mã"
+    send_telegram(msg)
+    print("\nKhông có tín hiệu mới — Đã gửi tin nhắn Heartbeat.")
 
-print(f"\n===== DONE — {len(buys)} BUY signals, {len(sells)} SELL signals =====")"""
-ST5 MASTER v2 — sau khi lọc thanh khoản
-Cập nhật: 2026-10-15
-Filter: loại 25 mã có GTGD 200 phiên < ngưỡng an toàn (xem FILTER_NOTE)
-Cron: 9:45 / 10:30 / 11:15 / 13:30 / 14:00 / 14:20 VN
-"""
-
-# ============================================================
-# FILTER NOTE (đọc trước khi sửa)
-# Ngày filter: 2026-10-15
-# Ngưỡng: GTGD trung bình 200 phiên gần nhất
-# Lý do: mã GTGD thấp → mua 100tr khó khớp 1 phiên, bán càng khó
-#         (khớp muộn → lỡ MH exit → thua lỗ không kiểm soát)
-# Refresh: nên chạy lại filter mỗi 6 tháng, so sánh list bỏ
-# 25 mã đã loại: CIG CTP FDC HLD HVT ICG KDM LGL MCG MFS MVC
-#                NAG PMG PSB SAS SAV SCI SEA SLS TA9 TDH TMT VFG
-#                VLG VNA
-# ============================================================
-
-RULES = {
-    "CORE-28": dict(
-        tickers=["GEX","ABB","APS","SGP","TCO","IDJ","VDS","HCM","BVS","NKG","NVL","KDC"],
-        volr=1.2, roc=3.0, macd=0.0, adx=16.0, ma200=False, ma50=True, mh=3,
-    ),
-    "CORE-30": dict(
-        tickers=["ABB","HCM","NKG","IDJ","NVL","SSI","CTS","CTR","FRT","NHA"],
-        volr=1.2, roc=3.0, macd=0.0, adx=20.0, ma200=False, ma50=True, mh=5,
-    ),
-    "CORE-DGW": dict(
-        tickers=["VGI","SCL","CSV","LPB","VTP","SJS","DCM","DPM","BCM","TVS","DGW","APG","VPB"],
-        volr=0.8, roc=1.5, macd=-0.5, adx=25.0, ma200=False, ma50=False, mh=7,
-    ),
-    "CORE-MBB": dict(
-        tickers=["SSI","FRT","MWG","IMP","DVP","BSR","APG"],
-        volr=1.0, roc=1.0, macd=-0.5, adx=15.0, ma200=True, ma50=False, mh=7,
-    ),
-    "CORE-TCH": dict(
-        tickers=["NHA","FRT","ABB","SCL","MBS","APG","SJS","HAH","SIP","CTR","MCH",
-                 "STB","BCM","HTN","GEG","VPB","VDS","APS","TCO"],
-        volr=1.2, roc=2.0, macd=0.0, adx=18.0, ma200=False, ma50=False, mh=10,
-    ),
-    "CORE-SCAN-DCM": dict(
-        tickers=["CTS","DGW","HSL","CII","CEO","MCH","DPM","VPB","FRT","BSR","VDS"],
-        volr=1.5, roc=4.0, macd=0.0, adx=19.0, ma200=True, ma50=True, mh=3,
-    ),
-    "CORE-SCAN-GVR": dict(
-        tickers=["FRT","CEO","DGW","VPB","VIX","LPB","VCG","DPR","GVR","BFC","OIL"],
-        volr=1.2, roc=4.0, macd=0.0, adx=27.0, ma200=False, ma50=False, mh=3,
-    ),
-}
-
-POSITION_SIZE = 100_000_000   # 100tr/lệnh
-MAX_POSITIONS = 10
-CAPITAL_INITIAL = 1_000_000_000
-
-TIMEZONE = "Asia/Ho_Chi_Minh"
-FEE_PER_ROUND = 0.4
-STATE_FILE = "../data/live_state_master.json"
-LOG_FILE = "../data/log_master.csv"
-TELEGRAM_TITLE = "ST5 MASTER"
-
-# BẮT BUỘC PHẢI CÓ DÒNG NÀY Ở ĐÂY
-DELAY_BETWEEN_TICKERS = 2  
+print(f"\n===== DONE — {len(buys)} BUY signals, {len(sells)} SELL signals =====")
