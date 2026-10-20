@@ -84,7 +84,6 @@ def send_telegram(msg):
         print(f"[TG FAIL] {e}")
 
 # ============ QUÉT TẤT CẢ RULES ============
-# collects: {ticker: [(rule_name, action, extra_info), ...]}
 signal_map = {}   # ticker -> list of dicts
 
 for rule_name, rule in RULES.items():
@@ -139,7 +138,6 @@ for rule_name, rule in RULES.items():
 state["last_run"] = str(now)
 
 # ============ TỔNG HỢP ============
-# Gộp mã được nhiều rule báo
 buys = {tk: sigs for tk, sigs in signal_map.items() if any(s["action"]=="BUY" for s in sigs)}
 sells = {tk: sigs for tk, sigs in signal_map.items() if any(s["action"]=="SELL" for s in sigs)}
 
@@ -153,13 +151,11 @@ if buys or sells:
     
     if buys:
         lines.append(f"\n🟢 <b>MUA ({len(buys)}):</b>")
-        # Sort theo số rule báo (strength)
         for tk, sigs in sorted(buys.items(), key=lambda x: -len([s for s in x[1] if s["action"]=="BUY"])):
             buy_sigs = [s for s in sigs if s["action"]=="BUY"]
             n = len(buy_sigs)
             strength = "🔥" * min(n, 3)
             rules_str = " + ".join(s["rule"] for s in buy_sigs)
-            # Lấy volR/ADX của rule đầu
             volr = buy_sigs[0]["volr"]; adx = buy_sigs[0]["adx"]; roc = buy_sigs[0]["roc"]
             lines.append(f"  {strength} <b>{tk}</b> — {rules_str}")
             lines.append(f"     VolR={volr:.2f} ADX={adx:.1f} ROC={roc:.1f}")
@@ -176,4 +172,66 @@ if buys or sells:
 else:
     print("\nKhông có tín hiệu mới")
 
-print(f"\n===== DONE — {len(buys)} BUY signals, {len(sells)} SELL signals =====")
+print(f"\n===== DONE — {len(buys)} BUY signals, {len(sells)} SELL signals =====")"""
+ST5 MASTER v2 — sau khi lọc thanh khoản
+Cập nhật: 2026-10-15
+Filter: loại 25 mã có GTGD 200 phiên < ngưỡng an toàn (xem FILTER_NOTE)
+Cron: 9:45 / 10:30 / 11:15 / 13:30 / 14:00 / 14:20 VN
+"""
+
+# ============================================================
+# FILTER NOTE (đọc trước khi sửa)
+# Ngày filter: 2026-10-15
+# Ngưỡng: GTGD trung bình 200 phiên gần nhất
+# Lý do: mã GTGD thấp → mua 100tr khó khớp 1 phiên, bán càng khó
+#         (khớp muộn → lỡ MH exit → thua lỗ không kiểm soát)
+# Refresh: nên chạy lại filter mỗi 6 tháng, so sánh list bỏ
+# 25 mã đã loại: CIG CTP FDC HLD HVT ICG KDM LGL MCG MFS MVC
+#                NAG PMG PSB SAS SAV SCI SEA SLS TA9 TDH TMT VFG
+#                VLG VNA
+# ============================================================
+
+RULES = {
+    "CORE-28": dict(
+        tickers=["GEX","ABB","APS","SGP","TCO","IDJ","VDS","HCM","BVS","NKG","NVL","KDC"],
+        volr=1.2, roc=3.0, macd=0.0, adx=16.0, ma200=False, ma50=True, mh=3,
+    ),
+    "CORE-30": dict(
+        tickers=["ABB","HCM","NKG","IDJ","NVL","SSI","CTS","CTR","FRT","NHA"],
+        volr=1.2, roc=3.0, macd=0.0, adx=20.0, ma200=False, ma50=True, mh=5,
+    ),
+    "CORE-DGW": dict(
+        tickers=["VGI","SCL","CSV","LPB","VTP","SJS","DCM","DPM","BCM","TVS","DGW","APG","VPB"],
+        volr=0.8, roc=1.5, macd=-0.5, adx=25.0, ma200=False, ma50=False, mh=7,
+    ),
+    "CORE-MBB": dict(
+        tickers=["SSI","FRT","MWG","IMP","DVP","BSR","APG"],
+        volr=1.0, roc=1.0, macd=-0.5, adx=15.0, ma200=True, ma50=False, mh=7,
+    ),
+    "CORE-TCH": dict(
+        tickers=["NHA","FRT","ABB","SCL","MBS","APG","SJS","HAH","SIP","CTR","MCH",
+                 "STB","BCM","HTN","GEG","VPB","VDS","APS","TCO"],
+        volr=1.2, roc=2.0, macd=0.0, adx=18.0, ma200=False, ma50=False, mh=10,
+    ),
+    "CORE-SCAN-DCM": dict(
+        tickers=["CTS","DGW","HSL","CII","CEO","MCH","DPM","VPB","FRT","BSR","VDS"],
+        volr=1.5, roc=4.0, macd=0.0, adx=19.0, ma200=True, ma50=True, mh=3,
+    ),
+    "CORE-SCAN-GVR": dict(
+        tickers=["FRT","CEO","DGW","VPB","VIX","LPB","VCG","DPR","GVR","BFC","OIL"],
+        volr=1.2, roc=4.0, macd=0.0, adx=27.0, ma200=False, ma50=False, mh=3,
+    ),
+}
+
+POSITION_SIZE = 100_000_000   # 100tr/lệnh
+MAX_POSITIONS = 10
+CAPITAL_INITIAL = 1_000_000_000
+
+TIMEZONE = "Asia/Ho_Chi_Minh"
+FEE_PER_ROUND = 0.4
+STATE_FILE = "../data/live_state_master.json"
+LOG_FILE = "../data/log_master.csv"
+TELEGRAM_TITLE = "ST5 MASTER"
+
+# BẮT BUỘC PHẢI CÓ DÒNG NÀY Ở ĐÂY
+DELAY_BETWEEN_TICKERS = 2  
