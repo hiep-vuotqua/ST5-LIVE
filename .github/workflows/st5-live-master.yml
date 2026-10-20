@@ -1,13 +1,8 @@
 name: ST5 LIVE MASTER
 
 on:
-  schedule:
-    - cron: "45 2 * * 1-5"    # 9:45 VN
-    - cron: "30 3 * * 1-5"    # 10:30 VN
-    - cron: "15 4 * * 1-5"    # 11:15 VN
-    - cron: "30 6 * * 1-5"    # 13:30 VN
-    - cron: "0 7 * * 1-5"     # 14:00 VN
-    - cron: "20 7 * * 1-5"    # 14:20 VN
+  # ĐÃ XÓA PHẦN SCHEDULE CỦA GITHUB. 
+  # Chỉ cron-job.org mới được phép kích hoạt bot này.
   workflow_dispatch:
 
 concurrency:
