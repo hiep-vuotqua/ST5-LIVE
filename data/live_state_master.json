@@ -34,6 +34,27 @@
       "size": 100000000,
       "volr": 1.23,
       "adx": 41.48
+    },
+    "SJS__CORE-DGW": {
+      "entry_date": "2026-10-21",
+      "entry_price": 55.0,
+      "size": 100000000,
+      "volr": 1.05,
+      "adx": 29.37
+    },
+    "APG__CORE-DGW": {
+      "entry_date": "2026-10-21",
+      "entry_price": 4.18,
+      "size": 100000000,
+      "volr": 1.25,
+      "adx": 49.99
+    },
+    "VDS__CORE-TCH": {
+      "entry_date": "2026-10-21",
+      "entry_price": 10.35,
+      "size": 100000000,
+      "volr": 1.25,
+      "adx": 47.83
     }
   },
   "last_signals": {
@@ -64,13 +85,13 @@
     "CSV__CORE-DGW": true,
     "LPB__CORE-DGW": false,
     "VTP__CORE-DGW": false,
-    "SJS__CORE-DGW": false,
+    "SJS__CORE-DGW": true,
     "DCM__CORE-DGW": false,
     "DPM__CORE-DGW": false,
     "BCM__CORE-DGW": false,
     "TVS__CORE-DGW": false,
     "DGW__CORE-DGW": false,
-    "APG__CORE-DGW": false,
+    "APG__CORE-DGW": true,
     "VPB__CORE-DGW": false,
     "SSI__CORE-MBB": false,
     "FRT__CORE-MBB": false,
@@ -95,7 +116,7 @@
     "HTN__CORE-TCH": false,
     "GEG__CORE-TCH": false,
     "VPB__CORE-TCH": false,
-    "VDS__CORE-TCH": false,
+    "VDS__CORE-TCH": true,
     "APS__CORE-TCH": false,
     "TCO__CORE-TCH": false,
     "CTS__CORE-SCAN-DCM": false,
@@ -121,6 +142,6 @@
     "BFC__CORE-SCAN-GVR": false,
     "OIL__CORE-SCAN-GVR": false
   },
-  "cash": 500000000,
-  "last_run": "2026-10-21 11:06:22.540392+07:00"
+  "cash": 200000000,
+  "last_run": "2026-10-21 11:30:58.586454+07:00"
 }
