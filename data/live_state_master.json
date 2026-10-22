@@ -34,6 +34,20 @@
       "size": 100000000,
       "volr": 1.27,
       "adx": 37.98
+    },
+    "APG__CORE-DGW": {
+      "entry_date": "2026-10-22",
+      "entry_price": 4.18,
+      "size": 100000000,
+      "volr": 0.82,
+      "adx": 48.67
+    },
+    "CEO__CORE-SCAN-GVR": {
+      "entry_date": "2026-10-22",
+      "entry_price": 11.5,
+      "size": 100000000,
+      "volr": 1.22,
+      "adx": 41.46
     }
   },
   "last_signals": {
@@ -70,7 +84,7 @@
     "BCM__CORE-DGW": false,
     "TVS__CORE-DGW": false,
     "DGW__CORE-DGW": false,
-    "APG__CORE-DGW": false,
+    "APG__CORE-DGW": true,
     "VPB__CORE-DGW": false,
     "SSI__CORE-MBB": false,
     "FRT__CORE-MBB": false,
@@ -110,7 +124,7 @@
     "BSR__CORE-SCAN-DCM": false,
     "VDS__CORE-SCAN-DCM": false,
     "FRT__CORE-SCAN-GVR": false,
-    "CEO__CORE-SCAN-GVR": false,
+    "CEO__CORE-SCAN-GVR": true,
     "DGW__CORE-SCAN-GVR": false,
     "VPB__CORE-SCAN-GVR": false,
     "VIX__CORE-SCAN-GVR": false,
@@ -121,6 +135,6 @@
     "BFC__CORE-SCAN-GVR": false,
     "OIL__CORE-SCAN-GVR": false
   },
-  "cash": 500000000,
-  "last_run": "2026-10-22 14:14:20.262775+07:00"
+  "cash": 300000000,
+  "last_run": "2026-10-22 19:36:26.974060+07:00"
 }
