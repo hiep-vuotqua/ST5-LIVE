@@ -95,8 +95,8 @@
     "FRT__CORE-30": false,
     "NHA__CORE-30": false,
     "VGI__CORE-DGW": false,
-    "SCL__CORE-DGW": false,
-    "CSV__CORE-DGW": false,
+    "SCL__CORE-DGW": true,
+    "CSV__CORE-DGW": true,
     "LPB__CORE-DGW": false,
     "VTP__CORE-DGW": false,
     "SJS__CORE-DGW": false,
@@ -157,5 +157,5 @@
     "OIL__CORE-SCAN-GVR": false
   },
   "cash": 0,
-  "last_run": "2026-10-22 10:31:09.477744+07:00"
+  "last_run": "2026-10-22 11:31:04.831980+07:00"
 }
