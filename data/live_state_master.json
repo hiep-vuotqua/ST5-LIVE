@@ -1,12 +1,5 @@
 {
   "positions": {
-    "NKG__CORE-28": {
-      "entry_date": "2026-10-22",
-      "entry_price": 11.55,
-      "size": 100000000,
-      "volr": 1.46,
-      "adx": 38.5
-    },
     "SCL__CORE-DGW": {
       "entry_date": "2026-10-22",
       "entry_price": 30.8,
@@ -81,12 +74,12 @@
     "VDS__CORE-28": false,
     "HCM__CORE-28": false,
     "BVS__CORE-28": false,
-    "NKG__CORE-28": true,
+    "NKG__CORE-28": false,
     "NVL__CORE-28": false,
     "KDC__CORE-28": false,
     "ABB__CORE-30": false,
     "HCM__CORE-30": false,
-    "NKG__CORE-30": true,
+    "NKG__CORE-30": false,
     "IDJ__CORE-30": false,
     "NVL__CORE-30": false,
     "SSI__CORE-30": false,
@@ -95,11 +88,11 @@
     "FRT__CORE-30": false,
     "NHA__CORE-30": false,
     "VGI__CORE-DGW": false,
-    "SCL__CORE-DGW": true,
+    "SCL__CORE-DGW": false,
     "CSV__CORE-DGW": false,
     "LPB__CORE-DGW": false,
     "VTP__CORE-DGW": false,
-    "SJS__CORE-DGW": false,
+    "SJS__CORE-DGW": true,
     "DCM__CORE-DGW": false,
     "DPM__CORE-DGW": false,
     "BCM__CORE-DGW": false,
@@ -156,6 +149,6 @@
     "BFC__CORE-SCAN-GVR": false,
     "OIL__CORE-SCAN-GVR": false
   },
-  "cash": 0,
-  "last_run": "2026-10-27 11:31:02.832685+07:00"
+  "cash": 104329004.32900433,
+  "last_run": "2026-10-28 09:45:53.489778+07:00"
 }
