@@ -92,7 +92,7 @@
     "CSV__CORE-DGW": false,
     "LPB__CORE-DGW": false,
     "VTP__CORE-DGW": false,
-    "SJS__CORE-DGW": true,
+    "SJS__CORE-DGW": false,
     "DCM__CORE-DGW": false,
     "DPM__CORE-DGW": false,
     "BCM__CORE-DGW": false,
@@ -150,5 +150,5 @@
     "OIL__CORE-SCAN-GVR": false
   },
   "cash": 104329004.32900433,
-  "last_run": "2026-10-28 09:45:53.489778+07:00"
+  "last_run": "2026-10-28 10:31:05.307901+07:00"
 }
