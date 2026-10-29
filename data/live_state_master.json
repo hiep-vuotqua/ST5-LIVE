@@ -88,7 +88,7 @@
     "FRT__CORE-30": false,
     "NHA__CORE-30": false,
     "VGI__CORE-DGW": false,
-    "SCL__CORE-DGW": false,
+    "SCL__CORE-DGW": true,
     "CSV__CORE-DGW": false,
     "LPB__CORE-DGW": false,
     "VTP__CORE-DGW": false,
@@ -110,7 +110,7 @@
     "NHA__CORE-TCH": false,
     "FRT__CORE-TCH": false,
     "ABB__CORE-TCH": false,
-    "SCL__CORE-TCH": false,
+    "SCL__CORE-TCH": true,
     "MBS__CORE-TCH": false,
     "APG__CORE-TCH": false,
     "SJS__CORE-TCH": false,
@@ -150,5 +150,5 @@
     "OIL__CORE-SCAN-GVR": false
   },
   "cash": 104329004.32900433,
-  "last_run": "2026-10-28 11:31:09.058598+07:00"
+  "last_run": "2026-10-29 09:46:02.481051+07:00"
 }
