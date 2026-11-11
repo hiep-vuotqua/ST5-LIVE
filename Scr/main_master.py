@@ -1,7 +1,6 @@
 """
 ST5 MASTER — chạy 7 rule, gộp signal, gửi 1 tin Telegram
-Đã fix: Chống mua trùng mã (dồn tiền vào 1 mã), thêm Heartbeat.
-Đã cập nhật: Chuẩn Vnstock v6 chính thức.
+Đã cập nhật: Chuẩn Vnstock v6.
 """
 import os, sys, json, time, csv
 from datetime import datetime, timedelta
@@ -10,6 +9,21 @@ import pandas as pd
 import numpy as np
 import warnings
 warnings.filterwarnings('ignore')
+
+# --- KIỂM TRA PHIÊN BẢN VNSTOCK ---
+import vnstock
+print(f"=== KIỂM TRA VNSTOCK: Phiên bản {getattr(vnstock, '__version__', 'Không rõ')} ===")
+
+try:
+    from vnstock import Quote
+    print(" -> Import Quote từ vnstock thành công.")
+except ImportError:
+    try:
+        from vnstock.api.quote import Quote
+        print(" -> Import Quote từ vnstock.api.quote thành công.")
+    except ImportError:
+        print(" -> LỖI: Không thể import Quote. Vui lòng kiểm tra lại môi trường.")
+        sys.exit(1)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -22,10 +36,6 @@ try:
     from indicators import add_v14_indicators
 except ImportError:
     add_v14_indicators = None
-
-# ============ DATA PULLING (VNSTOCK V6) ============
-# Gọi thẳng Quote từ vnstock (bản v6)
-from vnstock import Quote
 
 def get_intraday_data(ticker, days=400):
     end = datetime.now()
@@ -55,7 +65,6 @@ def get_intraday_data(ticker, days=400):
     print(f" [{ticker}] FAIL to pull data.")
     return pd.DataFrame()
 
-# ============ FALLBACK INDICATORS ============
 def _calc_indicators_fallback(df):
     d = df.copy()
     d['MA50'] = d['Close'].rolling(50).mean()
@@ -89,7 +98,6 @@ def _calc_indicators_fallback(df):
     d['ADX14'] = dx.ewm(alpha=1/14, adjust=False).mean()
     return d
 
-# ============ SETUP ============
 VN_TZ = pytz.timezone(TIMEZONE)
 now = datetime.now(VN_TZ)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -102,7 +110,6 @@ if now.weekday() >= 5:
     print("Cuối tuần — bỏ qua")
     sys.exit(0)
 
-# ============ LOAD STATE ============
 state = {"positions": {}, "last_signals": {}, "cash": CAPITAL_INITIAL, "last_run": None}
 if os.path.exists(state_path):
     try:
@@ -165,7 +172,6 @@ def send_telegram(msg):
     except Exception as e:
         print(f"[TG FAIL] {e}")
 
-# ============ QUÉT TẤT CẢ RULES ============
 signal_map = {}
 
 for rule_name, rule in RULES.items():
@@ -228,14 +234,12 @@ for rule_name, rule in RULES.items():
 
 state["last_run"] = str(now)
 
-# ============ TỔNG HỢP ============
 buys = {tk: sigs for tk, sigs in signal_map.items() if any(s["action"]=="BUY" for s in sigs)}
 sells = {tk: sigs for tk, sigs in signal_map.items() if any(s["action"]=="SELL" for s in sigs)}
 
 with open(state_path, "w") as f:
     json.dump(state, f, indent=2, ensure_ascii=False)
 
-# ============ TELEGRAM ============
 if buys or sells:
     lines = [f"📊 <b>{TELEGRAM_TITLE}</b> — {now.strftime('%Y-%m-%d %H:%M')}"]
     
