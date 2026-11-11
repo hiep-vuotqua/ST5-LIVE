@@ -1,7 +1,7 @@
+"""
+ST5 MASTER — Lấy dữ liệu trực tiếp từ API VNDirect (Không cần thư viện Vnstock)
+"""
 import sys
-"""
-ST5 MASTER — Chạy trên nền tảng Vnstock v2.0.0 (Ổn định, không cần API Key)
-"""
 import os, json, time, csv
 from datetime import datetime, timedelta
 import pytz, requests
@@ -22,44 +22,48 @@ try:
 except ImportError:
     add_v14_indicators = None
 
-# ============ DATA PULLING (VNSTOCK V2.0.0) ============
-from vnstock import Vnstock
-
+# ============ DATA PULLING (TRỰC TIẾP TỪ VNDIRECT) ============
 def get_intraday_data(ticker, days=400):
     end = datetime.now()
     start = end - timedelta(days=days)
     start_str = start.strftime("%Y-%m-%d")
     end_str = end.strftime("%Y-%m-%d")
     
-    for source in ["VCI", "TCBS"]:
-        try:
-            stock = Vnstock().stock(symbol=ticker, source=source)
-            df = stock.quote.history(start=start_str, end=end_str)
-            if df is None or len(df) == 0:
-                continue
+    # API VNDirect: Lấy nến ngày (1D) sắp xếp theo thời gian
+    url = f"https://dstock.vndirect.com.vn/v4/stock_prices?q=code:{ticker}~date:gte:{start_str}~date:lte:{end_str}&size=1000&sort=date:asc"
+    headers = {"User-Agent": "Mozilla/5.0"}
+    
+    try:
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.status_code != 200:
+            return pd.DataFrame()
+        
+        data = r.json().get("data", [])
+        if not data:
+            return pd.DataFrame()
             
-            # Chuẩn hóa tên cột
-            df.columns = [str(c).strip().lower() for c in df.columns]
-            rn = {"time":"Date","date":"Date","open":"Open","high":"High",
-                  "low":"Low","close":"Close","volume":"Volume"}
-            df = df.rename(columns={k:v for k,v in rn.items() if k in df.columns})
+        df = pd.DataFrame(data)
+        
+        # Đổi tên cột theo chuẩn của Bot
+        df = df.rename(columns={
+            "date": "Date", 
+            "open": "Open", 
+            "high": "High", 
+            "low": "Low", 
+            "close": "Close", 
+            "nmVolume": "Volume"
+        })
+        
+        df = df[["Date", "Open", "High", "Low", "Close", "Volume"]]
+        df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
+        for c in ["Open", "High", "Low", "Close", "Volume"]:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
             
-            # Đảm bảo đủ cột
-            if "Date" not in df.columns:
-                df = df.reset_index().rename(columns={"index": "Date"})
-                
-            df = df[["Date","Open","High","Low","Close","Volume"]].copy()
-            df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
-            for c in ["Open","High","Low","Close","Volume"]:
-                df[c] = pd.to_numeric(df[c], errors="coerce")
-            df = df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
-            return df
-        except Exception as e:
-            print(f" [{ticker}] Lỗi nguồn {source}: {str(e)[:100]}")
-            time.sleep(2)
-            continue
-    print(f" [{ticker}] FAIL to pull data.")
-    return pd.DataFrame()
+        df = df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
+        return df
+    except Exception as e:
+        # print(f" [{ticker}] Lỗi API: {str(e)[:100]}")
+        return pd.DataFrame()
 
 # ============ FALLBACK INDICATORS ============
 def _calc_indicators_fallback(df):
@@ -169,6 +173,7 @@ def send_telegram(msg):
     except Exception as e:
         print(f"[TG FAIL] {e}")
 
+# ============ QUÉT TẤT CẢ RULES ============
 signal_map = {}
 
 for rule_name, rule in RULES.items():
@@ -178,6 +183,7 @@ for rule_name, rule in RULES.items():
         try:
             df = get_cached_data(tk)
             if len(df) < 50: 
+                print(f"  [{tk}] FAIL to pull data.")
                 continue
                 
             sig, r = check_signal(df, rule)
@@ -204,6 +210,8 @@ for rule_name, rule in RULES.items():
                         "volr": r["VolumeRatio"], "adx": r["ADX14"], "roc": r["ROC10"],
                     })
                     print(f"  [{tk}] BUY {rule_name} volR={r['VolumeRatio']:.2f} ADX={r['ADX14']:.1f}")
+                else:
+                    print(f"  [{tk}] BUY signal but full/cash — skipped")
             elif (not sig) and prev and pos:
                 hold = business_days_since(pos["entry_date"], now)
                 if hold >= rule["mh"]:
@@ -253,4 +261,4 @@ else:
     send_telegram(msg)
     print("\nKhông có tín hiệu mới — Đã gửi tin nhắn Heartbeat.")
 
-print(f"\n===== DONE — {len(buys)} BUY signals, {len(sells)} SELL signals =====") 
+print(f"\n===== DONE — {len(buys)} BUY signals, {len(sells)} SELL signals =====")
