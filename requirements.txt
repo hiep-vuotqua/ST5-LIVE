@@ -1,5 +1,0 @@
---extra-index-url https://vnstocks.com/api/packages
-vnstock>=6.0.0
-pandas
-requests
-pytz
