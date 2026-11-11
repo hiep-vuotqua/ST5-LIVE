@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 sys.modules['vnai'] = MagicMock() # Lớp áo giáp đánh lừa hệ thống
 
 """
-ST5 MASTER — Tương thích Vnstock v4.0.9 (Đã sửa lỗi API lấy dữ liệu)
+ST5 MASTER — Tương thích Vnstock v4.0.9 (Có in lỗi chi tiết)
 """
 import os, json, time, csv
 from datetime import datetime, timedelta
@@ -26,7 +26,6 @@ except ImportError:
     add_v14_indicators = None
 
 # ============ DATA PULLING (VNSTOCK V4.0.9 - CHUẨN MỚI) ============
-# Sử dụng đúng cú pháp Quote như Vnstock yêu cầu trong log
 from vnstock.api.quote import Quote
 
 def get_intraday_data(ticker, days=400):
@@ -52,6 +51,8 @@ def get_intraday_data(ticker, days=400):
             df = df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
             return df
         except Exception as e:
+            # IN RA LỖI CHI TIẾT ĐỂ DEBUG
+            print(f" [{ticker}] LỖI NGUỒN {source}: {str(e)[:150]}")
             time.sleep(2)
             continue
     print(f" [{ticker}] FAIL to pull data.")
