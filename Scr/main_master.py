@@ -1,5 +1,5 @@
 """
-ST5 MASTER — Lấy dữ liệu qua CafeF (Không bao giờ bị chặn IP)
+ST5 MASTER — Sử dụng Vnstock 3.2.0 (Ổn định trên GitHub Actions)
 """
 import sys
 import os, json, time, csv
@@ -22,47 +22,39 @@ try:
 except ImportError:
     add_v14_indicators = None
 
-# ============ DATA PULLING (CAFEF API) ============
+# ============ DATA PULLING (VNSTOCK 3.2.0) ============
+from vnstock import Vnstock
+
 def get_intraday_data(ticker, days=400):
     end = datetime.now()
     start = end - timedelta(days=days)
     start_str = start.strftime("%Y-%m-%d")
     end_str = end.strftime("%Y-%m-%d")
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Referer": "https://s.cafef.vn/"
-    }
     
-    try:
-        url = f"https://s.cafef.vn/Ajax/PageNew/DataHistory/PriceHistory.ashx?Symbol={ticker}&StartDate={start_str}&EndDate={end_str}&PageIndex=1&PageSize=1000"
-        r = requests.get(url, headers=headers, timeout=15)
-        if r.status_code != 200:
-            return pd.DataFrame()
-        
-        data = r.json()
-        if "Data" not in data or len(data["Data"]) == 0:
-            return pd.DataFrame()
-            
-        df = pd.DataFrame(data["Data"])
-        df = df.rename(columns={
-            "Ngay": "Date", 
-            "GiaMoCua": "Open", 
-            "GiaCaoNhat": "High", 
-            "GiaThapNhat": "Low", 
-            "GiaDongCua": "Close", 
-            "KhoiLuongKhopLenh": "Volume"
-        })
-        
-        df = df[["Date", "Open", "High", "Low", "Close", "Volume"]]
-        df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
-        for c in ["Open", "High", "Low", "Close", "Volume"]:
-            df[c] = pd.to_numeric(df[c], errors="coerce")
-            
-        df = df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
-        return df
-    except Exception as e:
-        print(f" [{ticker}] Lỗi API: {str(e)[:100]}")
-        return pd.DataFrame()
+    for source in ["VCI", "TCBS"]:
+        try:
+            stock = Vnstock().stock(symbol=ticker, source=source)
+            df = stock.quote.history(start=start_str, end=end_str)
+            if df is None or len(df) == 0:
+                continue
+            df.columns = [str(c).strip().lower() for c in df.columns]
+            rn = {"time":"Date","date":"Date","open":"Open","high":"High",
+                  "low":"Low","close":"Close","volume":"Volume"}
+            df = df.rename(columns={k:v for k,v in rn.items() if k in df.columns})
+            if "Date" not in df.columns:
+                df = df.reset_index().rename(columns={"index": "Date"})
+            df = df[["Date","Open","High","Low","Close","Volume"]].copy()
+            df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
+            for c in ["Open","High","Low","Close","Volume"]:
+                df[c] = pd.to_numeric(df[c], errors="coerce")
+            df = df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
+            return df
+        except Exception as e:
+            print(f" [{ticker}] Lỗi nguồn {source}: {str(e)[:100]}")
+            time.sleep(2)
+            continue
+    print(f" [{ticker}] FAIL to pull data.")
+    return pd.DataFrame()
 
 # ============ FALLBACK INDICATORS ============
 def _calc_indicators_fallback(df):
@@ -131,7 +123,6 @@ def get_cached_data(tk, days=400):
 
 def check_signal(df, p):
     d = df.copy()
-    
     if add_v14_indicators:
         try:
             d = add_v14_indicators(d)
@@ -188,7 +179,6 @@ for rule_name, rule in RULES.items():
         try:
             df = get_cached_data(tk)
             if len(df) < 50: 
-                print(f"  [{tk}] FAIL (chỉ có {len(df)} nến)")
                 continue
                 
             sig, r = check_signal(df, rule)
@@ -231,7 +221,6 @@ for rule_name, rule in RULES.items():
             state["last_signals"][key] = sig
             time.sleep(DELAY_BETWEEN_TICKERS)
         except Exception as e:
-            print(f"  [{tk}] ERR: {str(e)[:100]}")
             time.sleep(DELAY_BETWEEN_TICKERS)
 
 state["last_run"] = str(now)
