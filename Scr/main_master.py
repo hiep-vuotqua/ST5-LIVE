@@ -1,13 +1,15 @@
 """
 ST5 MASTER — chạy 7 rule, gộp signal, gửi 1 tin Telegram
 Đã fix: Chống mua trùng mã (dồn tiền vào 1 mã), thêm Heartbeat.
-Đã cập nhật: Tương thích Vnstock v6, tự động tính indicators dự phòng.
+Đã cập nhật: Tương thích Vnstock v6 (Dynamic Import), tự động tính indicators dự phòng.
 """
 import os, sys, json, time, csv
 from datetime import datetime, timedelta
 import pytz, requests
 import pandas as pd
 import numpy as np
+import warnings
+warnings.filterwarnings('ignore') # Tắt cảnh báo rác
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -16,15 +18,40 @@ from config_master import (
     TIMEZONE, STATE_FILE, LOG_FILE, TELEGRAM_TITLE, DELAY_BETWEEN_TICKERS,
 )
 
-# Cố gắng import indicators gốc, nếu lỗi sẽ dùng hàm tự tính bên dưới
 try:
     from indicators import add_v14_indicators
 except ImportError:
     add_v14_indicators = None
 
-# ============ DATA PULLING (VNSTOCK V6) ============
-# Sửa lỗi Import: v6 sử dụng trực tiếp class Quote, không dùng Vnstock wrapper nữa
-from vnstock import Quote
+# ============ DATA PULLING (VNSTOCK V6 - DYNAMIC IMPORT) ============
+print("Đang khởi tạo Vnstock...")
+Quote = None
+
+# Thử tất cả các đường dẫn import có thể có của vnstock
+try:
+    from vnstock import Quote
+    print(" -> Import: from vnstock import Quote (Thành công)")
+except ImportError:
+    try:
+        from vnstock.api.quote import Quote
+        print(" -> Import: from vnstock.api.quote import Quote (Thành công)")
+    except ImportError:
+        try:
+            from vnstock.explorer.vci.quote import Quote
+            print(" -> Import: from vnstock.explorer.vci.quote import Quote (Thành công)")
+        except ImportError:
+            print(" -> CẢNH BÁO: Không thể import Quote. Sẽ thử dùng Vnstock wrapper (dự phòng).")
+            try:
+                from vnstock import Vnstock
+                class Quote:
+                    def __init__(self, symbol, source):
+                        self.stock = Vnstock().stock(symbol=symbol, source=source)
+                    def history(self, *args, **kwargs):
+                        return self.stock.quote.history(*args, **kwargs)
+                print(" -> Import Vnstock wrapper (Thành công)")
+            except Exception as e:
+                print(f" -> LỖI NGHIÊM TRỌNG: Không thể import bất kỳ module nào của vnstock. {e}")
+                sys.exit(1)
 
 def get_intraday_data(ticker, days=400):
     end = datetime.now()
@@ -32,7 +59,6 @@ def get_intraday_data(ticker, days=400):
     start_str = start.strftime("%Y-%m-%d")
     end_str = end.strftime("%Y-%m-%d")
     
-    # V6: Ưu tiên nguồn VPS và SSI
     for source in ["VPS", "SSI", "VCI"]:
         try:
             q = Quote(symbol=ticker, source=source)
@@ -185,7 +211,7 @@ for rule_name, rule in RULES.items():
             pos = state["positions"].get(key)
             
             if sig and not prev and not pos:
-                # FIX LỖI MUA TRÙNG MÃ: Nếu mã này đã nằm trong danh mục (bất kể rule nào) thì bỏ qua
+                # FIX LỖI MUA TRÙNG MÃ
                 already_held = any(k.startswith(f"{tk}__") for k in state["positions"])
                 
                 if already_held:
@@ -263,7 +289,6 @@ if buys or sells:
     lines.append(f"\n💰 Cash: {state['cash']/1e9:.4f} tỷ | Pos: {len(state['positions'])}")
     send_telegram("\n".join(lines))
 else:
-    # HEARTBEAT: Báo cáo trạng thái nếu không có tín hiệu
     msg = f"🤖 <b>{TELEGRAM_TITLE}</b> — {now.strftime('%H:%M')}\n"
     msg += f"Trạng thái: Không có tín hiệu mới.\n"
     msg += f"💰 Cash: {state['cash']/1e9:.4f} tỷ | Đang giữ: {len(state['positions'])} mã"
