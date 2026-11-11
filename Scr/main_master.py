@@ -1,5 +1,5 @@
 """
-ST5 MASTER — Sử dụng Vnstock 3.2.0 (Ổn định trên GitHub Actions)
+ST5 MASTER — Lấy dữ liệu qua TCBS API (Ổn định, không chặn IP)
 """
 import sys
 import os, json, time, csv
@@ -22,39 +22,49 @@ try:
 except ImportError:
     add_v14_indicators = None
 
-# ============ DATA PULLING (VNSTOCK 3.2.0) ============
-from vnstock import Vnstock
-
+# ============ DATA PULLING (TCBS API) ============
 def get_intraday_data(ticker, days=400):
     end = datetime.now()
     start = end - timedelta(days=days)
-    start_str = start.strftime("%Y-%m-%d")
-    end_str = end.strftime("%Y-%m-%d")
+    start_ts = int(start.timestamp())
+    end_ts = int(end.timestamp())
     
-    for source in ["VCI", "TCBS"]:
-        try:
-            stock = Vnstock().stock(symbol=ticker, source=source)
-            df = stock.quote.history(start=start_str, end=end_str)
-            if df is None or len(df) == 0:
-                continue
-            df.columns = [str(c).strip().lower() for c in df.columns]
-            rn = {"time":"Date","date":"Date","open":"Open","high":"High",
-                  "low":"Low","close":"Close","volume":"Volume"}
-            df = df.rename(columns={k:v for k,v in rn.items() if k in df.columns})
-            if "Date" not in df.columns:
-                df = df.reset_index().rename(columns={"index": "Date"})
-            df = df[["Date","Open","High","Low","Close","Volume"]].copy()
-            df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
-            for c in ["Open","High","Low","Close","Volume"]:
-                df[c] = pd.to_numeric(df[c], errors="coerce")
-            df = df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
-            return df
-        except Exception as e:
-            print(f" [{ticker}] Lỗi nguồn {source}: {str(e)[:100]}")
-            time.sleep(2)
-            continue
-    print(f" [{ticker}] FAIL to pull data.")
-    return pd.DataFrame()
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    
+    try:
+        url = f"https://apipubaws.tcbs.com.vn/stock/v3/stock/bars-long-term?ticker={ticker}&type=stock&resolution=1D&from={start_ts}&to={end_ts}"
+        r = requests.get(url, headers=headers, timeout=15)
+        
+        if r.status_code != 200:
+            return pd.DataFrame()
+            
+        data = r.json()
+        if "data" not in data or not isinstance(data["data"], list) or len(data["data"]) == 0:
+            return pd.DataFrame()
+            
+        df = pd.DataFrame(data["data"])
+        df = df.rename(columns={
+            "tradingDate": "Date", 
+            "open": "Open", 
+            "high": "High", 
+            "low": "Low", 
+            "close": "Close", 
+            "volume": "Volume"
+        })
+        
+        df = df[["Date", "Open", "High", "Low", "Close", "Volume"]]
+        df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
+        
+        for c in ["Open", "High", "Low", "Close", "Volume"]:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
+            
+        df = df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
+        return df
+    except Exception as e:
+        # print(f" [{ticker}] Lỗi API: {str(e)[:100]}")
+        return pd.DataFrame()
 
 # ============ FALLBACK INDICATORS ============
 def _calc_indicators_fallback(df):
