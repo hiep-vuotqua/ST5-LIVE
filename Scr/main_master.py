@@ -1,9 +1,6 @@
 import sys
-from unittest.mock import MagicMock
-sys.modules['vnai'] = MagicMock() # Lớp áo giáp đánh lừa hệ thống
-
 """
-ST5 MASTER — Tương thích Vnstock v4.0.9 (Có in lỗi chi tiết)
+ST5 MASTER — Chạy trên nền tảng Vnstock v2.0.0 (Ổn định, không cần API Key)
 """
 import os, json, time, csv
 from datetime import datetime, timedelta
@@ -25,8 +22,8 @@ try:
 except ImportError:
     add_v14_indicators = None
 
-# ============ DATA PULLING (VNSTOCK V4.0.9 - CHUẨN MỚI) ============
-from vnstock.api.quote import Quote
+# ============ DATA PULLING (VNSTOCK V2.0.0) ============
+from vnstock import Vnstock
 
 def get_intraday_data(ticker, days=400):
     end = datetime.now()
@@ -34,16 +31,23 @@ def get_intraday_data(ticker, days=400):
     start_str = start.strftime("%Y-%m-%d")
     end_str = end.strftime("%Y-%m-%d")
     
-    for source in ["VCI", "KBS"]:
+    for source in ["VCI", "TCBS"]:
         try:
-            q = Quote(symbol=ticker, source=source)
-            df = q.history(start=start_str, end=end_str, interval="1D")
+            stock = Vnstock().stock(symbol=ticker, source=source)
+            df = stock.quote.history(start=start_str, end=end_str)
             if df is None or len(df) == 0:
                 continue
+            
+            # Chuẩn hóa tên cột
             df.columns = [str(c).strip().lower() for c in df.columns]
             rn = {"time":"Date","date":"Date","open":"Open","high":"High",
                   "low":"Low","close":"Close","volume":"Volume"}
             df = df.rename(columns={k:v for k,v in rn.items() if k in df.columns})
+            
+            # Đảm bảo đủ cột
+            if "Date" not in df.columns:
+                df = df.reset_index().rename(columns={"index": "Date"})
+                
             df = df[["Date","Open","High","Low","Close","Volume"]].copy()
             df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
             for c in ["Open","High","Low","Close","Volume"]:
@@ -51,8 +55,7 @@ def get_intraday_data(ticker, days=400):
             df = df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
             return df
         except Exception as e:
-            # IN RA LỖI CHI TIẾT ĐỂ DEBUG
-            print(f" [{ticker}] LỖI NGUỒN {source}: {str(e)[:150]}")
+            print(f" [{ticker}] Lỗi nguồn {source}: {str(e)[:100]}")
             time.sleep(2)
             continue
     print(f" [{ticker}] FAIL to pull data.")
@@ -97,7 +100,6 @@ VN_TZ = pytz.timezone(TIMEZONE)
 now = datetime.now(VN_TZ)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 state_path = os.path.join(BASE_DIR, STATE_FILE)
-log_path = os.path.join(BASE_DIR, LOG_FILE)
 
 print(f"===== {TELEGRAM_TITLE} — {now.strftime('%Y-%m-%d %H:%M:%S %Z')} =====")
 
@@ -105,7 +107,6 @@ if now.weekday() >= 5:
     print("Cuối tuần — bỏ qua")
     sys.exit(0)
 
-# ============ LOAD STATE ============
 state = {"positions": {}, "last_signals": {}, "cash": CAPITAL_INITIAL, "last_run": None}
 if os.path.exists(state_path):
     try:
@@ -168,7 +169,6 @@ def send_telegram(msg):
     except Exception as e:
         print(f"[TG FAIL] {e}")
 
-# ============ QUÉT TẤT CẢ RULES ============
 signal_map = {}
 
 for rule_name, rule in RULES.items():
@@ -188,19 +188,15 @@ for rule_name, rule in RULES.items():
             
             if sig and not prev and not pos:
                 already_held = any(k.startswith(f"{tk}__") for k in state["positions"])
-                
                 if already_held:
-                    print(f"  [{tk}] BUY signal ({rule_name}) but ALREADY HELD another rule — skipped")
                     state["last_signals"][key] = sig
                     continue
                 
                 if len(state["positions"]) < MAX_POSITIONS and state["cash"] >= POSITION_SIZE:
                     state["cash"] -= POSITION_SIZE
                     state["positions"][key] = {
-                        "entry_date": str(now.date()),
-                        "entry_price": r["Close"],
-                        "size": POSITION_SIZE,
-                        "volr": round(r["VolumeRatio"], 2),
+                        "entry_date": str(now.date()), "entry_price": r["Close"],
+                        "size": POSITION_SIZE, "volr": round(r["VolumeRatio"], 2),
                         "adx": round(r["ADX14"], 2),
                     }
                     signal_map.setdefault(tk, []).append({
@@ -208,17 +204,13 @@ for rule_name, rule in RULES.items():
                         "volr": r["VolumeRatio"], "adx": r["ADX14"], "roc": r["ROC10"],
                     })
                     print(f"  [{tk}] BUY {rule_name} volR={r['VolumeRatio']:.2f} ADX={r['ADX14']:.1f}")
-                else:
-                    print(f"  [{tk}] BUY signal but full/cash — skipped")
             elif (not sig) and prev and pos:
                 hold = business_days_since(pos["entry_date"], now)
                 if hold >= rule["mh"]:
                     ret = r["Close"] / pos["entry_price"]
-                    proceeds = pos["size"] * ret
-                    state["cash"] += proceeds
+                    state["cash"] += pos["size"] * ret
                     signal_map.setdefault(tk, []).append({
-                        "rule": rule_name, "action": "SELL",
-                        "ret": ret - 1, "hold": hold,
+                        "rule": rule_name, "action": "SELL", "ret": ret - 1, "hold": hold,
                     })
                     print(f"  [{tk}] SELL hold={hold} ret={(ret-1)*100:+.2f}%")
                     del state["positions"][key]
@@ -231,42 +223,34 @@ for rule_name, rule in RULES.items():
 
 state["last_run"] = str(now)
 
-# ============ TỔNG HỢP ============
 buys = {tk: sigs for tk, sigs in signal_map.items() if any(s["action"]=="BUY" for s in sigs)}
 sells = {tk: sigs for tk, sigs in signal_map.items() if any(s["action"]=="SELL" for s in sigs)}
 
 with open(state_path, "w") as f:
     json.dump(state, f, indent=2, ensure_ascii=False)
 
-# ============ TELEGRAM ============
 if buys or sells:
     lines = [f"📊 <b>{TELEGRAM_TITLE}</b> — {now.strftime('%Y-%m-%d %H:%M')}"]
-    
     if buys:
         lines.append(f"\n🟢 <b>MUA ({len(buys)}):</b>")
         for tk, sigs in sorted(buys.items(), key=lambda x: -len([s for s in x[1] if s["action"]=="BUY"])):
             buy_sigs = [s for s in sigs if s["action"]=="BUY"]
-            n = len(buy_sigs)
-            strength = "🔥" * min(n, 3)
+            strength = "🔥" * min(len(buy_sigs), 3)
             rules_str = " + ".join(s["rule"] for s in buy_sigs)
             volr = buy_sigs[0]["volr"]; adx = buy_sigs[0]["adx"]; roc = buy_sigs[0]["roc"]
             lines.append(f"  {strength} <b>{tk}</b> — {rules_str}")
             lines.append(f"     VolR={volr:.2f} ADX={adx:.1f} ROC={roc:.1f}")
-    
     if sells:
         lines.append(f"\n🔴 <b>BÁN ({len(sells)}):</b>")
         for tk, sigs in sells.items():
             sell_sigs = [s for s in sigs if s["action"]=="SELL"]
             for s in sell_sigs:
                 lines.append(f"  • {tk} — {s['rule']} (hold {s['hold']}d, {s['ret']*100:+.2f}%)")
-    
     lines.append(f"\n💰 Cash: {state['cash']/1e9:.4f} tỷ | Pos: {len(state['positions'])}")
     send_telegram("\n".join(lines))
 else:
-    msg = f"🤖 <b>{TELEGRAM_TITLE}</b> — {now.strftime('%H:%M')}\n"
-    msg += f"Trạng thái: Không có tín hiệu mới.\n"
-    msg += f"💰 Cash: {state['cash']/1e9:.4f} tỷ | Đang giữ: {len(state['positions'])} mã"
+    msg = f"🤖 <b>{TELEGRAM_TITLE}</b> — {now.strftime('%H:%M')}\nTrạng thái: Không có tín hiệu mới.\n💰 Cash: {state['cash']/1e9:.4f} tỷ | Đang giữ: {len(state['positions'])} mã"
     send_telegram(msg)
     print("\nKhông có tín hiệu mới — Đã gửi tin nhắn Heartbeat.")
 
-print(f"\n===== DONE — {len(buys)} BUY signals, {len(sells)} SELL signals =====")
+print(f"\n===== DONE — {len(buys)} BUY signals, {len(sells)} SELL signals =====") 
