@@ -14,7 +14,6 @@ sys.path.insert(0, os.path.dirname(__file__))
 from config_b1full import B1FULL_RULES, CAPITAL_ALLOC, TRAIL_PCT, TELEGRAM_PREFIX
 
 # ---------- INDICATORS ----------
-# Base indicators.py của repo (nếu có) — dùng làm nền
 try:
     from indicators import add_v14_indicators as _base_ind
 except ImportError:
@@ -33,19 +32,13 @@ def _calc_adx(df, period=14):
     return dx.ewm(alpha=1/period, adjust=False).mean()
 
 def prepare(df):
-    """
-    Enrich DataFrame với tất cả cột cần cho signal check:
-    VolR, ROC10, MACD_Hist, ADX14, MA50, MA200.
-    Dùng indicators.py của repo nếu có, sau đó fill missing columns.
-    """
     d = df.copy()
-    # 1) Gọi base indicators.py (nếu import được)
     if _base_ind is not None:
         try:
             d = _base_ind(d)
         except Exception as e:
             print(f"    [warn] base indicators fail: {e}")
-    # 2) Đảm bảo từng cột cần thiết có mặt
+    
     if "VolR" not in d.columns:
         if "VolumeRatio" in d.columns:
             d["VolR"] = d["VolumeRatio"]
@@ -66,17 +59,20 @@ def prepare(df):
         d["MA200"] = d["Close"].rolling(200).mean()
     return d
 
-# ---------- PULL DATA ----------
+# ---------- PULL DATA (ĐÃ CẬP NHẬT CHO VNSTOCK V6) ----------
 try:
     from data_master import pull_daily
 except ImportError:
-    from vnstock import Quote
+    # v6 yêu cầu import từ vnstock.api.quote
+    from vnstock.api.quote import Quote
+    
     def pull_daily(ticker, start="2018-01-01", end=None):
         if end is None:
             end = datetime.now().strftime("%Y-%m-%d")
-        for src in ["KBS", "VCI"]:
+        # v6: Nguồn VCI/KBS đã bị hạn chế, chuyển sang VPS hoặc SSI
+        for src in ["VPS", "SSI"]:
             try:
-                q = Quote(source=src, symbol=ticker)
+                q = Quote(symbol=ticker, source=src)
                 df = q.history(start=start, end=end, interval="1D")
                 if df is None or len(df) == 0:
                     continue
@@ -89,10 +85,11 @@ except ImportError:
                 for c in ["Open","High","Low","Close","Volume"]:
                     df[c] = pd.to_numeric(df[c], errors="coerce")
                 df = df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
-                time.sleep(3)
+                time.sleep(2) # Giảm delay xuống 2s vì API v6 nhanh hơn
                 return df
-            except Exception:
-                time.sleep(5)
+            except Exception as e:
+                # print(f"Lỗi nguồn {src} cho {ticker}: {e}")
+                time.sleep(3)
                 continue
         return pd.DataFrame()
 
