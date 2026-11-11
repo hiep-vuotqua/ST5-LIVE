@@ -1,5 +1,5 @@
 """
-ST5 MASTER — Lấy dữ liệu qua TCBS & VNDirect (Chuẩn thời gian mili-giây)
+ST5 MASTER — API CafeF (Chuẩn định dạng dd/mm/yyyy) & TCBS
 """
 import sys
 import os, json, time, csv
@@ -22,53 +22,42 @@ try:
 except ImportError:
     add_v14_indicators = None
 
-# ============ DATA PULLING (TCBS & VNDIRECT) ============
+# ============ DATA PULLING (CAFEF & TCBS) ============
 def get_intraday_data(ticker, days=400):
     end = datetime.now()
     start = end - timedelta(days=days)
-    
-    # Chuyển sang mili-giây cho TCBS
-    start_ts = int(start.timestamp() * 1000)
-    end_ts = int(end.timestamp() * 1000)
-    
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
-    # Nguồn 1: TCBS API
+    # Nguồn 1: CafeF (dd/mm/yyyy)
     try:
-        url = f"https://apipubaws.tcbs.com.vn/stock/v3/stock/bars-long-term?ticker={ticker}&type=stock&resolution=1D&from={start_ts}&to={end_ts}"
-        r = requests.get(url, headers=headers, timeout=15)
+        start_str = start.strftime("%d/%m/%Y")
+        end_str = end.strftime("%d/%m/%Y")
+        url = f"https://s.cafef.vn/Ajax/PageNew/DataHistory/PriceHistory.ashx?Symbol={ticker}&StartDate={start_str}&EndDate={end_str}&PageIndex=1&PageSize=1000"
+        r = requests.get(url, headers=headers, timeout=10)
         if r.status_code == 200:
             data = r.json()
-            if "data" in data and isinstance(data["data"], list) and len(data["data"]) > 0:
-                df = pd.DataFrame(data["data"])
-                df = df.rename(columns={
-                    "tradingDate": "Date", "open": "Open", "high": "High", 
-                    "low": "Low", "close": "Close", "volume": "Volume"
-                })
+            if "Data" in data and isinstance(data["Data"], list) and len(data["Data"]) > 0:
+                df = pd.DataFrame(data["Data"])
+                df = df.rename(columns={"Ngay": "Date", "GiaMoCua": "Open", "GiaCaoNhat": "High", "GiaThapNhat": "Low", "GiaDongCua": "Close", "KhoiLuongKhopLenh": "Volume"})
                 df = df[["Date", "Open", "High", "Low", "Close", "Volume"]]
-                df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
+                df["Date"] = pd.to_datetime(df["Date"], format="%d/%m/%Y", errors="coerce").dt.normalize()
                 for c in ["Open", "High", "Low", "Close", "Volume"]:
                     df[c] = pd.to_numeric(df[c], errors="coerce")
                 return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
     except Exception:
         pass
 
-    # Nguồn 2: VNDirect API (Dự phòng)
+    # Nguồn 2: TCBS (Giây)
     try:
-        start_str = start.strftime("%Y-%m-%d")
-        end_str = end.strftime("%Y-%m-%d")
-        url = f"https://dstock.vndirect.com.vn/v4/stock_prices?q=code:{ticker}~date:gte:{start_str}~date:lte:{end_str}&size=1000&sort=date:asc"
-        r = requests.get(url, headers=headers, timeout=15)
+        start_ts = int(start.timestamp())
+        end_ts = int(end.timestamp())
+        url = f"https://apipubaws.tcbs.com.vn/stock/v3/stock/bars-long-term?ticker={ticker}&type=stock&resolution=1D&from={start_ts}&to={end_ts}"
+        r = requests.get(url, headers=headers, timeout=10)
         if r.status_code == 200:
             data = r.json()
-            if "data" in data and len(data["data"]) > 0:
+            if "data" in data and isinstance(data["data"], list) and len(data["data"]) > 0:
                 df = pd.DataFrame(data["data"])
-                df = df.rename(columns={
-                    "date": "Date", "open": "Open", "high": "High", 
-                    "low": "Low", "close": "Close", "nmVolume": "Volume"
-                })
+                df = df.rename(columns={"tradingDate": "Date", "open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"})
                 df = df[["Date", "Open", "High", "Low", "Close", "Volume"]]
                 df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
                 for c in ["Open", "High", "Low", "Close", "Volume"]:
@@ -202,6 +191,7 @@ for rule_name, rule in RULES.items():
         try:
             df = get_cached_data(tk)
             if len(df) < 50: 
+                print(f"  [{tk}] Bỏ qua (chỉ có {len(df)} nến)")
                 continue
                 
             sig, r = check_signal(df, rule)
