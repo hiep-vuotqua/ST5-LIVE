@@ -1,8 +1,12 @@
+import sys
+from unittest.mock import MagicMock
+sys.modules['vnai'] = MagicMock() # Lớp áo giáp đánh lừa hệ thống
+
 """
 ST5 MASTER — Tương thích Vnstock v4.0.9
 Đã fix: Chống mua trùng mã (dồn tiền vào 1 mã), thêm Heartbeat.
 """
-import os, sys, json, time, csv
+import os, json, time, csv
 from datetime import datetime, timedelta
 import pytz, requests
 import pandas as pd
