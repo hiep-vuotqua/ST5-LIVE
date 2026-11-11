@@ -1,16 +1,19 @@
 """
 Logic bot ST5-B1FULL — Merge-12 + Trail 10%.
-Chạy 10:00, 11:00, 13:40, 14:10 (T2-T6) qua cron-job.org.
-Signal: bar cuối (T-1) → entry ATC hôm nay.
-Exit: hold đủ mh ngày HOẶC trail trigger (close T-1 <= peak*0.9).
+Nguồn dữ liệu: Yahoo Finance (Không bao giờ bị chặn IP)
 """
-
 import os, sys, json, time, requests
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
+import warnings
+import logging
+import yfinance as yf
 
-sys.path.insert(0, os.path.dirname(__file__))
+warnings.filterwarnings('ignore')
+logging.getLogger('yfinance').setLevel(logging.CRITICAL)
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from config_b1full import B1FULL_RULES, CAPITAL_ALLOC, TRAIL_PCT, TELEGRAM_PREFIX
 
 # ---------- INDICATORS ----------
@@ -37,7 +40,7 @@ def prepare(df):
         try:
             d = _base_ind(d)
         except Exception as e:
-            print(f"    [warn] base indicators fail: {e}")
+            pass
     
     if "VolR" not in d.columns:
         if "VolumeRatio" in d.columns:
@@ -59,38 +62,31 @@ def prepare(df):
         d["MA200"] = d["Close"].rolling(200).mean()
     return d
 
-# ---------- PULL DATA (ĐÃ CẬP NHẬT CHO VNSTOCK V6) ----------
-try:
-    from data_master import pull_daily
-except ImportError:
-    # v6 yêu cầu import từ vnstock.api.quote
-    from vnstock.api.quote import Quote
+# ---------- PULL DATA (YAHOO FINANCE) ----------
+def pull_daily(ticker, start="2020-01-01", end=None):
+    if end is None:
+        end = datetime.now().strftime("%Y-%m-%d")
     
-    def pull_daily(ticker, start="2018-01-01", end=None):
-        if end is None:
-            end = datetime.now().strftime("%Y-%m-%d")
-        # v6: Nguồn VCI/KBS đã bị hạn chế, chuyển sang VPS hoặc SSI
-        for src in ["VPS", "SSI"]:
-            try:
-                q = Quote(symbol=ticker, source=src)
-                df = q.history(start=start, end=end, interval="1D")
-                if df is None or len(df) == 0:
-                    continue
-                df.columns = [str(c).strip().lower() for c in df.columns]
-                rn = {"time":"Date","date":"Date","open":"Open","high":"High",
-                      "low":"Low","close":"Close","volume":"Volume"}
-                df = df.rename(columns={k:v for k,v in rn.items() if k in df.columns})
-                df = df[["Date","Open","High","Low","Close","Volume"]].copy()
-                df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
-                for c in ["Open","High","Low","Close","Volume"]:
-                    df[c] = pd.to_numeric(df[c], errors="coerce")
-                df = df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
-                time.sleep(2) # Giảm delay xuống 2s vì API v6 nhanh hơn
-                return df
-            except Exception as e:
-                # print(f"Lỗi nguồn {src} cho {ticker}: {e}")
-                time.sleep(3)
-                continue
+    yf_ticker = f"{ticker}.VN"
+    try:
+        df = yf.download(yf_ticker, start=start, end=end, interval="1d", progress=False)
+        if df is None or len(df) == 0:
+            return pd.DataFrame()
+            
+        df = df.reset_index()
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.droplevel(1)
+            
+        df = df.rename(columns={"Date":"Date","Open":"Open","High":"High","Low":"Low","Close":"Close","Volume":"Volume"})
+        if df["Date"].dt.tz is not None:
+            df["Date"] = df["Date"].dt.tz_localize(None)
+            
+        df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
+        for c in ["Open","High","Low","Close","Volume"]:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
+            
+        return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
+    except Exception:
         return pd.DataFrame()
 
 # ---------- PATHS ----------
@@ -277,4 +273,4 @@ def main():
     send_telegram(msg)
 
 if __name__ == "__main__":
-    main()
+    main() 
