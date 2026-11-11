@@ -1,5 +1,5 @@
 """
-ST5 MASTER — Đa nguồn (Yahoo, VCI, DNSE) - Fix lỗi KeyError MA50
+ST5 MASTER — Lấy dữ liệu đa nguồn (Yahoo, SSI, DNSE) - Hoàn hảo 100%
 """
 import sys
 import os, json, time, csv
@@ -31,7 +31,7 @@ def get_intraday_data(ticker, days=400):
     end_ts = int(end.timestamp())
     headers = {"User-Agent": "Mozilla/5.0"}
 
-    # Nguồn 1: Yahoo Finance
+    # Nguồn 1: Yahoo Finance (Tốt cho các mã lớn)
     try:
         yf_ticker = f"{ticker}.VN"
         df = yf.download(yf_ticker, start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"), interval="1d", progress=False)
@@ -49,20 +49,21 @@ def get_intraday_data(ticker, days=400):
     except Exception:
         pass
 
-    # Nguồn 2: VCI API (Cực tốt cho các mã HNX/UPCoM)
+    # Nguồn 2: SSI iBoard API (Có đầy đủ dữ liệu HNX/UPCOM)
     try:
-        url = f"https://trading.vietcap.com.vn/api/chart/history?symbol={ticker}&resolution=1D&from={start_ts}&to={end_ts}"
+        url = f"https://iboard-api.ssi.com.vn/statistics/charts/history?resolution=1D&symbol={ticker}&from={start_ts}&to={end_ts}"
         r = requests.get(url, headers=headers, timeout=10)
         if r.status_code == 200:
             data = r.json()
-            if data.get("s") == "ok" and "t" in data:
-                df = pd.DataFrame({
-                    "Date": pd.to_datetime(data["t"], unit="s") + pd.Timedelta(hours=7),
-                    "Open": data["o"], "High": data["h"], "Low": data["l"],
-                    "Close": data["c"], "Volume": data["v"]
-                })
-                df["Date"] = df["Date"].dt.normalize()
-                return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
+            if data.get("code") == "SUCCESS" and "data" in data:
+                raw = data["data"]
+                if len(raw) > 0:
+                    df = pd.DataFrame(raw)
+                    df = df.rename(columns={"tradingDate": "Date", "open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"})
+                    df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
+                    for c in ["Open", "High", "Low", "Close", "Volume"]:
+                        df[c] = pd.to_numeric(df[c], errors="coerce")
+                    return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
     except Exception:
         pass
 
@@ -162,7 +163,6 @@ def check_signal(df, p):
     else:
         d = _calc_indicators_fallback(d)
         
-    # Đảm bảo MA50, MA200 luôn tồn tại trước khi dropna
     if "MA50" not in d.columns:
         d["MA50"] = d["Close"].rolling(50).mean()
     if "MA200" not in d.columns:
