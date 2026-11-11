@@ -1,7 +1,7 @@
 """
 ST5 MASTER — chạy 7 rule, gộp signal, gửi 1 tin Telegram
 Đã fix: Chống mua trùng mã (dồn tiền vào 1 mã), thêm Heartbeat.
-Đã cập nhật: Tương thích Vnstock v6 (Dùng Vnstock Wrapper an toàn), tự động tính indicators dự phòng.
+Đã cập nhật: Tương thích Vnstock v6, tự động tính indicators dự phòng.
 """
 import os, sys, json, time, csv
 from datetime import datetime, timedelta
@@ -22,8 +22,9 @@ try:
 except ImportError:
     add_v14_indicators = None
 
-# ============ DATA PULLING (VNSTOCK V6 - DÙNG WRAPPER AN TOÀN) ============
-from vnstock import Vnstock
+# ============ DATA PULLING (VNSTOCK V6) ============
+# Sửa lỗi Import: v6 sử dụng trực tiếp class Quote, không dùng Vnstock wrapper nữa
+from vnstock import Quote
 
 def get_intraday_data(ticker, days=400):
     end = datetime.now()
@@ -32,11 +33,10 @@ def get_intraday_data(ticker, days=400):
     end_str = end.strftime("%Y-%m-%d")
     
     # V6: Ưu tiên nguồn VPS và SSI
-    for source in ["VPS", "SSI"]:
+    for source in ["VPS", "SSI", "VCI"]:
         try:
-            # Sử dụng Vnstock Wrapper để tương thích mọi phiên bản
-            stock = Vnstock().stock(symbol=ticker, source=source)
-            df = stock.quote.history(start=start_str, end=end_str, interval="1D")
+            q = Quote(symbol=ticker, source=source)
+            df = q.history(start=start_str, end=end_str, interval="1D")
             if df is None or len(df) == 0:
                 continue
             df.columns = [str(c).strip().lower() for c in df.columns]
