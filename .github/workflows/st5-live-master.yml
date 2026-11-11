@@ -22,11 +22,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # Cài đặt các thư viện phụ trợ bằng tay trước
-          pip install pandas requests pytz numpy beautifulsoup4 seaborn openpyxl pydantic psutil tenacity packaging importlib-metadata
-          # Cài vnstock nhưng BỎ QUA bước tải vnai (dùng --no-deps)
-          pip install --extra-index-url https://vnstocks.com/api/simple --no-deps git+https://github.com/thinh-vu/vnstock.git@v4.0.9
-          
+          pip install pandas requests pytz numpy
+          pip install vnstock==2.0.0
       - name: Run master
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
