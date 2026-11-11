@@ -1,5 +1,5 @@
 """
-ST5 MASTER — API CafeF (Chuẩn định dạng dd/mm/yyyy) & TCBS
+ST5 MASTER — Yahoo Finance (Nguồn duy nhất không chặn GitHub IP)
 """
 import sys
 import os, json, time, csv
@@ -8,7 +8,10 @@ import pytz, requests
 import pandas as pd
 import numpy as np
 import warnings
+import logging
+import yfinance as yf
 warnings.filterwarnings('ignore')
+logging.getLogger('yfinance').setLevel(logging.CRITICAL)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -22,51 +25,27 @@ try:
 except ImportError:
     add_v14_indicators = None
 
-# ============ DATA PULLING (CAFEF & TCBS) ============
+# ============ DATA PULLING (YAHOO FINANCE) ============
 def get_intraday_data(ticker, days=400):
     end = datetime.now()
     start = end - timedelta(days=days)
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-
-    # Nguồn 1: CafeF (dd/mm/yyyy)
+    yf_ticker = f"{ticker}.VN"
     try:
-        start_str = start.strftime("%d/%m/%Y")
-        end_str = end.strftime("%d/%m/%Y")
-        url = f"https://s.cafef.vn/Ajax/PageNew/DataHistory/PriceHistory.ashx?Symbol={ticker}&StartDate={start_str}&EndDate={end_str}&PageIndex=1&PageSize=1000"
-        r = requests.get(url, headers=headers, timeout=10)
-        if r.status_code == 200:
-            data = r.json()
-            if "Data" in data and isinstance(data["Data"], list) and len(data["Data"]) > 0:
-                df = pd.DataFrame(data["Data"])
-                df = df.rename(columns={"Ngay": "Date", "GiaMoCua": "Open", "GiaCaoNhat": "High", "GiaThapNhat": "Low", "GiaDongCua": "Close", "KhoiLuongKhopLenh": "Volume"})
-                df = df[["Date", "Open", "High", "Low", "Close", "Volume"]]
-                df["Date"] = pd.to_datetime(df["Date"], format="%d/%m/%Y", errors="coerce").dt.normalize()
-                for c in ["Open", "High", "Low", "Close", "Volume"]:
-                    df[c] = pd.to_numeric(df[c], errors="coerce")
-                return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
+        df = yf.download(yf_ticker, start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"), interval="1d", progress=False)
+        if df is None or len(df) == 0:
+            return pd.DataFrame()
+        df = df.reset_index()
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.droplevel(1)
+        df = df.rename(columns={"Date": "Date", "Open": "Open", "High": "High", "Low": "Low", "Close": "Close", "Volume": "Volume"})
+        if df["Date"].dt.tz is not None:
+            df["Date"] = df["Date"].dt.tz_localize(None)
+        df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
+        for c in ["Open", "High", "Low", "Close", "Volume"]:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
+        return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
     except Exception:
-        pass
-
-    # Nguồn 2: TCBS (Giây)
-    try:
-        start_ts = int(start.timestamp())
-        end_ts = int(end.timestamp())
-        url = f"https://apipubaws.tcbs.com.vn/stock/v3/stock/bars-long-term?ticker={ticker}&type=stock&resolution=1D&from={start_ts}&to={end_ts}"
-        r = requests.get(url, headers=headers, timeout=10)
-        if r.status_code == 200:
-            data = r.json()
-            if "data" in data and isinstance(data["data"], list) and len(data["data"]) > 0:
-                df = pd.DataFrame(data["data"])
-                df = df.rename(columns={"tradingDate": "Date", "open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"})
-                df = df[["Date", "Open", "High", "Low", "Close", "Volume"]]
-                df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
-                for c in ["Open", "High", "Low", "Close", "Volume"]:
-                    df[c] = pd.to_numeric(df[c], errors="coerce")
-                return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
-    except Exception:
-        pass
-
-    return pd.DataFrame()
+        return pd.DataFrame()
 
 # ============ FALLBACK INDICATORS ============
 def _calc_indicators_fallback(df):
@@ -76,28 +55,23 @@ def _calc_indicators_fallback(df):
     d['Vol_MA20'] = d['Volume'].rolling(20).mean()
     d['VolumeRatio'] = d['Volume'] / d['Vol_MA20']
     d['ROC10'] = (d['Close'] / d['Close'].shift(10) - 1) * 100
-    
     exp12 = d['Close'].ewm(span=12, adjust=False).mean()
     exp26 = d['Close'].ewm(span=26, adjust=False).mean()
     d['MACD'] = exp12 - exp26
     d['MACD_Signal'] = d['MACD'].ewm(span=9, adjust=False).mean()
     d['MACD_Hist'] = d['MACD'] - d['MACD_Signal']
-    
     high, low, close = d['High'], d['Low'], d['Close']
     tr1 = high - low
     tr2 = abs(high - close.shift(1))
     tr3 = abs(low - close.shift(1))
     tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
     d['ATR14'] = tr.ewm(alpha=1/14, adjust=False).mean()
-    
     up_move = high - high.shift(1)
     down_move = low.shift(1) - low
     plus_dm = np.where((up_move > down_move) & (up_move > 0), up_move, 0.0)
     minus_dm = np.where((down_move > up_move) & (down_move > 0), down_move, 0.0)
-    
     d['Plus_DI'] = 100 * (pd.Series(plus_dm, index=d.index).ewm(alpha=1/14, adjust=False).mean() / d['ATR14'])
     d['Minus_DI'] = 100 * (pd.Series(minus_dm, index=d.index).ewm(alpha=1/14, adjust=False).mean() / d['ATR14'])
-    
     dx = 100 * abs(d['Plus_DI'] - d['Minus_DI']) / (d['Plus_DI'] + d['Minus_DI'])
     d['ADX14'] = dx.ewm(alpha=1/14, adjust=False).mean()
     return d
@@ -109,6 +83,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 state_path = os.path.join(BASE_DIR, STATE_FILE)
 
 print(f"===== {TELEGRAM_TITLE} — {now.strftime('%Y-%m-%d %H:%M:%S %Z')} =====")
+print("Nguồn dữ liệu: Yahoo Finance (Các mã nhỏ HNX/UPCOM sẽ bị bỏ qua)")
 
 if now.weekday() >= 5:
     print("Cuối tuần — bỏ qua")
@@ -125,6 +100,8 @@ if os.path.exists(state_path):
         print(f"[state load fail] {e}")
 
 ticker_cache = {}
+ok_count = 0
+fail_count = 0
 
 def get_cached_data(tk, days=400):
     if tk in ticker_cache:
@@ -142,15 +119,12 @@ def check_signal(df, p):
             d = _calc_indicators_fallback(d)
     else:
         d = _calc_indicators_fallback(d)
-        
     if "MA50" not in d.columns:
         d["MA50"] = d["Close"].rolling(50).mean()
     if "MA200" not in d.columns:
         d["MA200"] = d["Close"].rolling(200).mean()
-        
     d = d.dropna().reset_index(drop=True)
     if len(d) == 0: return None, None
-    
     r = d.iloc[-1]
     conds = [
         r["VolumeRatio"] > p["volr"],
@@ -181,7 +155,6 @@ def send_telegram(msg):
     except Exception as e:
         print(f"[TG FAIL] {e}")
 
-# ============ QUÉT TẤT CẢ RULES ============
 signal_map = {}
 
 for rule_name, rule in RULES.items():
@@ -191,9 +164,10 @@ for rule_name, rule in RULES.items():
         try:
             df = get_cached_data(tk)
             if len(df) < 50: 
-                print(f"  [{tk}] Bỏ qua (chỉ có {len(df)} nến)")
+                fail_count += 1
                 continue
-                
+            
+            ok_count += 1
             sig, r = check_signal(df, rule)
             if sig is None: continue
             
@@ -205,7 +179,6 @@ for rule_name, rule in RULES.items():
                 if already_held:
                     state["last_signals"][key] = sig
                     continue
-                
                 if len(state["positions"]) < MAX_POSITIONS and state["cash"] >= POSITION_SIZE:
                     state["cash"] -= POSITION_SIZE
                     state["positions"][key] = {
@@ -218,8 +191,6 @@ for rule_name, rule in RULES.items():
                         "volr": r["VolumeRatio"], "adx": r["ADX14"], "roc": r["ROC10"],
                     })
                     print(f"  [{tk}] BUY {rule_name} volR={r['VolumeRatio']:.2f} ADX={r['ADX14']:.1f}")
-                else:
-                    print(f"  [{tk}] BUY signal but full/cash — skipped")
             elif (not sig) and prev and pos:
                 hold = business_days_since(pos["entry_date"], now)
                 if hold >= rule["mh"]:
@@ -230,14 +201,15 @@ for rule_name, rule in RULES.items():
                     })
                     print(f"  [{tk}] SELL hold={hold} ret={(ret-1)*100:+.2f}%")
                     del state["positions"][key]
-            
             state["last_signals"][key] = sig
             time.sleep(DELAY_BETWEEN_TICKERS)
-        except Exception as e:
+        except Exception:
+            fail_count += 1
             time.sleep(DELAY_BETWEEN_TICKERS)
 
-state["last_run"] = str(now)
+print(f"\n===== TÓM TẮT: Lấy được {ok_count} mã, Bỏ qua {fail_count} mã =====")
 
+state["last_run"] = str(now)
 buys = {tk: sigs for tk, sigs in signal_map.items() if any(s["action"]=="BUY" for s in sigs)}
 sells = {tk: sigs for tk, sigs in signal_map.items() if any(s["action"]=="SELL" for s in sigs)}
 
@@ -262,9 +234,10 @@ if buys or sells:
             for s in sell_sigs:
                 lines.append(f"  • {tk} — {s['rule']} (hold {s['hold']}d, {s['ret']*100:+.2f}%)")
     lines.append(f"\n💰 Cash: {state['cash']/1e9:.4f} tỷ | Pos: {len(state['positions'])}")
+    lines.append(f"📊 Đã quét: {ok_count} mã | Bỏ qua: {fail_count} mã")
     send_telegram("\n".join(lines))
 else:
-    msg = f"🤖 <b>{TELEGRAM_TITLE}</b> — {now.strftime('%H:%M')}\nTrạng thái: Không có tín hiệu mới.\n💰 Cash: {state['cash']/1e9:.4f} tỷ | Đang giữ: {len(state['positions'])} mã"
+    msg = f"🤖 <b>{TELEGRAM_TITLE}</b> — {now.strftime('%H:%M')}\nTrạng thái: Không có tín hiệu mới.\n💰 Cash: {state['cash']/1e9:.4f} tỷ | Đang giữ: {len(state['positions'])} mã\n📊 Đã quét: {ok_count} mã | Bỏ qua: {fail_count} mã"
     send_telegram(msg)
     print("\nKhông có tín hiệu mới — Đã gửi tin nhắn Heartbeat.")
 
