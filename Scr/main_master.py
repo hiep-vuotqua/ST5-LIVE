@@ -1,5 +1,5 @@
 """
-ST5 MASTER — Lấy dữ liệu trực tiếp từ API VNDirect (Không cần thư viện Vnstock)
+ST5 MASTER — Lấy dữ liệu đa nguồn (DNSE, SSI, TCBS) - Chống chặn IP
 """
 import sys
 import os, json, time, csv
@@ -22,48 +22,63 @@ try:
 except ImportError:
     add_v14_indicators = None
 
-# ============ DATA PULLING (TRỰC TIẾP TỪ VNDIRECT) ============
+# ============ DATA PULLING (ĐA NGUỒN) ============
 def get_intraday_data(ticker, days=400):
     end = datetime.now()
     start = end - timedelta(days=days)
-    start_str = start.strftime("%Y-%m-%d")
-    end_str = end.strftime("%Y-%m-%d")
+    start_ts = int(start.timestamp())
+    end_ts = int(end.timestamp())
     
-    # API VNDirect: Lấy nến ngày (1D) sắp xếp theo thời gian
-    url = f"https://dstock.vndirect.com.vn/v4/stock_prices?q=code:{ticker}~date:gte:{start_str}~date:lte:{end_str}&size=1000&sort=date:asc"
     headers = {"User-Agent": "Mozilla/5.0"}
-    
+
+    # Nguồn 1: DNSE (Entrade) - Rất ổn định, không chặn IP
     try:
+        url = f"https://api.entrade.com.vn/api/marketdata/history?symbol={ticker}&resolution=1D&from={start_ts}&to={end_ts}"
         r = requests.get(url, headers=headers, timeout=10)
-        if r.status_code != 200:
-            return pd.DataFrame()
-        
-        data = r.json().get("data", [])
-        if not data:
-            return pd.DataFrame()
-            
-        df = pd.DataFrame(data)
-        
-        # Đổi tên cột theo chuẩn của Bot
-        df = df.rename(columns={
-            "date": "Date", 
-            "open": "Open", 
-            "high": "High", 
-            "low": "Low", 
-            "close": "Close", 
-            "nmVolume": "Volume"
-        })
-        
-        df = df[["Date", "Open", "High", "Low", "Close", "Volume"]]
-        df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
-        for c in ["Open", "High", "Low", "Close", "Volume"]:
-            df[c] = pd.to_numeric(df[c], errors="coerce")
-            
-        df = df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
-        return df
-    except Exception as e:
-        # print(f" [{ticker}] Lỗi API: {str(e)[:100]}")
-        return pd.DataFrame()
+        if r.status_code == 200:
+            data = r.json()
+            if data.get("s") == "ok" and "t" in data:
+                df = pd.DataFrame({
+                    "Date": pd.to_datetime(data["t"], unit="s") + pd.Timedelta(hours=7),
+                    "Open": data["o"], "High": data["h"], "Low": data["l"],
+                    "Close": data["c"], "Volume": data["v"]
+                })
+                df["Date"] = df["Date"].dt.normalize()
+                return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
+    except: pass
+
+    # Nguồn 2: SSI
+    try:
+        url = f"https://iboard-api.ssi.com.vn/statistics/charts/history?resolution=1D&symbol={ticker}&from={start_ts}&to={end_ts}"
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.status_code == 200:
+            data = r.json()
+            if data.get("code") == "SUCCESS" and "data" in data:
+                raw = data["data"]
+                if len(raw) > 0:
+                    df = pd.DataFrame(raw)
+                    df = df.rename(columns={"time": "Date", "open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"})
+                    df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
+                    return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
+    except: pass
+    
+    # Nguồn 3: TCBS
+    try:
+        url = f"https://apipubaws.tcbs.com.vn/stock/v3/stock/bars-long-term?ticker={ticker}&type=stock&resolution=1D&from={start_ts}&to={end_ts}"
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.status_code == 200:
+            data = r.json()
+            if "data" in data:
+                raw = data["data"]
+                if len(raw) > 0:
+                    df = pd.DataFrame(raw)
+                    df = df.rename(columns={"tradingDate": "Date", "open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"})
+                    df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
+                    return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
+    except: pass
+
+    print(f" [{ticker}] FAIL to pull data.")
+    return pd.DataFrame()
 
 # ============ FALLBACK INDICATORS ============
 def _calc_indicators_fallback(df):
@@ -183,7 +198,6 @@ for rule_name, rule in RULES.items():
         try:
             df = get_cached_data(tk)
             if len(df) < 50: 
-                print(f"  [{tk}] FAIL to pull data.")
                 continue
                 
             sig, r = check_signal(df, rule)
