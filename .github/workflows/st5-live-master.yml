@@ -48,40 +48,4 @@ jobs:
             git rebase --abort 2>/dev/null || true
             sleep 10
           done
-          git push || echo "Push failed after 3 attempts"Skip to content
-hiep-vuotqua
-ST5-LIVE
-Repository navigation
-Code
-Issues
-Pull requests
-Actions
-Projects
-Wiki
-Security and quality
-Insights
-ST5 LIVE MASTER
-ST5 LIVE MASTER #159
-All jobs
-Run details
-Annotations
-1 error, 1 warning, and 1 notice
-run
-failed 3 minutes ago in 18s
-Search logs
-0s
-1s
-0s
-13s
-1s
-Run cd Scr
-Traceback (most recent call last):
-  File "/home/runner/work/ST5-LIVE/ST5-LIVE/Scr/main_master.py", line 12, in <module>
-    import yfinance as yf
-ModuleNotFoundError: No module named 'yfinance'
-Error: Process completed with exit code 1.
-0s
-0s
-0s
-0s
- 
+          git push || echo "Push failed after 3 attempts"
