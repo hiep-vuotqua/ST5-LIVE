@@ -1,7 +1,7 @@
 """
 ST5 MASTER — chạy 7 rule, gộp signal, gửi 1 tin Telegram
 Đã fix: Chống mua trùng mã (dồn tiền vào 1 mã), thêm Heartbeat.
-Đã cập nhật: Tương thích Vnstock v6 (Dynamic Import), tự động tính indicators dự phòng.
+Đã cập nhật: Chuẩn Vnstock v6 chính thức.
 """
 import os, sys, json, time, csv
 from datetime import datetime, timedelta
@@ -9,7 +9,7 @@ import pytz, requests
 import pandas as pd
 import numpy as np
 import warnings
-warnings.filterwarnings('ignore') # Tắt cảnh báo rác
+warnings.filterwarnings('ignore')
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -23,35 +23,9 @@ try:
 except ImportError:
     add_v14_indicators = None
 
-# ============ DATA PULLING (VNSTOCK V6 - DYNAMIC IMPORT) ============
-print("Đang khởi tạo Vnstock...")
-Quote = None
-
-# Thử tất cả các đường dẫn import có thể có của vnstock
-try:
-    from vnstock import Quote
-    print(" -> Import: from vnstock import Quote (Thành công)")
-except ImportError:
-    try:
-        from vnstock.api.quote import Quote
-        print(" -> Import: from vnstock.api.quote import Quote (Thành công)")
-    except ImportError:
-        try:
-            from vnstock.explorer.vci.quote import Quote
-            print(" -> Import: from vnstock.explorer.vci.quote import Quote (Thành công)")
-        except ImportError:
-            print(" -> CẢNH BÁO: Không thể import Quote. Sẽ thử dùng Vnstock wrapper (dự phòng).")
-            try:
-                from vnstock import Vnstock
-                class Quote:
-                    def __init__(self, symbol, source):
-                        self.stock = Vnstock().stock(symbol=symbol, source=source)
-                    def history(self, *args, **kwargs):
-                        return self.stock.quote.history(*args, **kwargs)
-                print(" -> Import Vnstock wrapper (Thành công)")
-            except Exception as e:
-                print(f" -> LỖI NGHIÊM TRỌNG: Không thể import bất kỳ module nào của vnstock. {e}")
-                sys.exit(1)
+# ============ DATA PULLING (VNSTOCK V6) ============
+# Gọi thẳng Quote từ vnstock (bản v6)
+from vnstock import Quote
 
 def get_intraday_data(ticker, days=400):
     end = datetime.now()
@@ -139,7 +113,6 @@ if os.path.exists(state_path):
     except Exception as e:
         print(f"[state load fail] {e}")
 
-# Cache data theo ticker để không pull trùng
 ticker_cache = {}
 
 def get_cached_data(tk, days=400):
@@ -193,7 +166,7 @@ def send_telegram(msg):
         print(f"[TG FAIL] {e}")
 
 # ============ QUÉT TẤT CẢ RULES ============
-signal_map = {}   # ticker -> list of dicts
+signal_map = {}
 
 for rule_name, rule in RULES.items():
     print(f"\n--- {rule_name} ({len(rule['tickers'])} mã) ---")
@@ -211,7 +184,6 @@ for rule_name, rule in RULES.items():
             pos = state["positions"].get(key)
             
             if sig and not prev and not pos:
-                # FIX LỖI MUA TRÙNG MÃ
                 already_held = any(k.startswith(f"{tk}__") for k in state["positions"])
                 
                 if already_held:
@@ -260,7 +232,6 @@ state["last_run"] = str(now)
 buys = {tk: sigs for tk, sigs in signal_map.items() if any(s["action"]=="BUY" for s in sigs)}
 sells = {tk: sigs for tk, sigs in signal_map.items() if any(s["action"]=="SELL" for s in sigs)}
 
-# Lưu State
 with open(state_path, "w") as f:
     json.dump(state, f, indent=2, ensure_ascii=False)
 
