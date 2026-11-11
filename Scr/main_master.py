@@ -3,8 +3,7 @@ from unittest.mock import MagicMock
 sys.modules['vnai'] = MagicMock() # Lớp áo giáp đánh lừa hệ thống
 
 """
-ST5 MASTER — Tương thích Vnstock v4.0.9
-Đã fix: Chống mua trùng mã (dồn tiền vào 1 mã), thêm Heartbeat.
+ST5 MASTER — Tương thích Vnstock v4.0.9 (Đã sửa lỗi API lấy dữ liệu)
 """
 import os, json, time, csv
 from datetime import datetime, timedelta
@@ -26,8 +25,9 @@ try:
 except ImportError:
     add_v14_indicators = None
 
-# ============ DATA PULLING (VNSTOCK V4.0.9) ============
-from vnstock import Vnstock
+# ============ DATA PULLING (VNSTOCK V4.0.9 - CHUẨN MỚI) ============
+# Sử dụng đúng cú pháp Quote như Vnstock yêu cầu trong log
+from vnstock.api.quote import Quote
 
 def get_intraday_data(ticker, days=400):
     end = datetime.now()
@@ -35,11 +35,10 @@ def get_intraday_data(ticker, days=400):
     start_str = start.strftime("%Y-%m-%d")
     end_str = end.strftime("%Y-%m-%d")
     
-    # Bản v4.0.9 dùng VCI và KBS ổn định nhất
     for source in ["VCI", "KBS"]:
         try:
-            stock = Vnstock().stock(symbol=ticker, source=source)
-            df = stock.quote.history(start=start_str, end=end_str, interval="1D")
+            q = Quote(symbol=ticker, source=source)
+            df = q.history(start=start_str, end=end_str, interval="1D")
             if df is None or len(df) == 0:
                 continue
             df.columns = [str(c).strip().lower() for c in df.columns]
