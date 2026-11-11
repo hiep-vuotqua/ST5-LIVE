@@ -1,5 +1,5 @@
 """
-ST5 MASTER — Lấy dữ liệu đa nguồn (DNSE, SSI, TCBS) - Chống chặn IP
+ST5 MASTER — Lấy dữ liệu qua Yahoo Finance (Chống chặn IP tuyệt đối)
 """
 import sys
 import os, json, time, csv
@@ -8,6 +8,7 @@ import pytz, requests
 import pandas as pd
 import numpy as np
 import warnings
+import yfinance as yf
 warnings.filterwarnings('ignore')
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -22,16 +23,34 @@ try:
 except ImportError:
     add_v14_indicators = None
 
-# ============ DATA PULLING (ĐA NGUỒN) ============
+# ============ DATA PULLING (YAHOO FINANCE + DNSE FALLBACK) ============
 def get_intraday_data(ticker, days=400):
     end = datetime.now()
     start = end - timedelta(days=days)
+    
+    # Nguồn 1: Yahoo Finance (Cực kỳ ổn định, không chặn IP)
+    yf_ticker = f"{ticker}.VN"
+    try:
+        df = yf.download(yf_ticker, start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"), interval="1d", progress=False)
+        if df is not None and len(df) > 0:
+            df = df.reset_index()
+            # Xử lý MultiIndex columns (đặc trưng của yfinance)
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.droplevel(1)
+            df = df.rename(columns={"Date": "Date", "Open": "Open", "High": "High", "Low": "Low", "Close": "Close", "Volume": "Volume"})
+            if df["Date"].dt.tz is not None:
+                df["Date"] = df["Date"].dt.tz_localize(None)
+            df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
+            for c in ["Open", "High", "Low", "Close", "Volume"]:
+                df[c] = pd.to_numeric(df[c], errors="coerce")
+            return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
+    except Exception:
+        pass # Thử nguồn tiếp theo nếu lỗi
+
+    # Nguồn 2: DNSE (Dự phòng)
     start_ts = int(start.timestamp())
     end_ts = int(end.timestamp())
-    
     headers = {"User-Agent": "Mozilla/5.0"}
-
-    # Nguồn 1: DNSE (Entrade) - Rất ổn định, không chặn IP
     try:
         url = f"https://api.entrade.com.vn/api/marketdata/history?symbol={ticker}&resolution=1D&from={start_ts}&to={end_ts}"
         r = requests.get(url, headers=headers, timeout=10)
@@ -45,37 +64,8 @@ def get_intraday_data(ticker, days=400):
                 })
                 df["Date"] = df["Date"].dt.normalize()
                 return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
-    except: pass
-
-    # Nguồn 2: SSI
-    try:
-        url = f"https://iboard-api.ssi.com.vn/statistics/charts/history?resolution=1D&symbol={ticker}&from={start_ts}&to={end_ts}"
-        r = requests.get(url, headers=headers, timeout=10)
-        if r.status_code == 200:
-            data = r.json()
-            if data.get("code") == "SUCCESS" and "data" in data:
-                raw = data["data"]
-                if len(raw) > 0:
-                    df = pd.DataFrame(raw)
-                    df = df.rename(columns={"time": "Date", "open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"})
-                    df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
-                    return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
-    except: pass
-    
-    # Nguồn 3: TCBS
-    try:
-        url = f"https://apipubaws.tcbs.com.vn/stock/v3/stock/bars-long-term?ticker={ticker}&type=stock&resolution=1D&from={start_ts}&to={end_ts}"
-        r = requests.get(url, headers=headers, timeout=10)
-        if r.status_code == 200:
-            data = r.json()
-            if "data" in data:
-                raw = data["data"]
-                if len(raw) > 0:
-                    df = pd.DataFrame(raw)
-                    df = df.rename(columns={"tradingDate": "Date", "open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"})
-                    df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
-                    return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
-    except: pass
+    except Exception:
+        pass
 
     print(f" [{ticker}] FAIL to pull data.")
     return pd.DataFrame()
