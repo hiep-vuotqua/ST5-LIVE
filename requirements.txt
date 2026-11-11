@@ -2,7 +2,6 @@
 --extra-index-url https://vnstocks.com/api/packages--extra-index-url https://vnstocks.com/api/simple
 --extra-index-url https://pypi.org/simple
 vnstock==5.0.1
-vnai
 pandas
 numpy
 requests
