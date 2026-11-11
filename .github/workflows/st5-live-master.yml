@@ -1,4 +1,4 @@
-name: ST5 LIVE MASTER
+ưname: ST5 LIVE MASTER
 
 on:
   # ĐÃ XÓA PHẦN SCHEDULE CỦA GITHUB. 
@@ -24,11 +24,9 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # Cài đặt vnstock v6 và vnstock-oapi từ kho chính thức
-          pip install -U --pre --extra-index-url https://vnstocks.com/api/packages vnstock vnstock-oapi
-          # Cài đặt các thư viện phụ trợ khác
+          # Ép pip chỉ tải từ kho của Vnstock
+          pip install -U --index-url https://vnstocks.com/api/packages vnstock
           pip install pandas requests pytz numpy
-          
       - name: Run master
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
