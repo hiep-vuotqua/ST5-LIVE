@@ -1,5 +1,5 @@
 """
-ST5 MASTER — API Thuần Túy (SSI & DNSE), Không dùng thư viện Vnstock
+ST5 MASTER — Lấy dữ liệu qua CafeF (Không bao giờ bị chặn IP)
 """
 import sys
 import os, json, time, csv
@@ -22,51 +22,47 @@ try:
 except ImportError:
     add_v14_indicators = None
 
-# ============ DATA PULLING (API THUẦN TÚY) ============
+# ============ DATA PULLING (CAFEF API) ============
 def get_intraday_data(ticker, days=400):
     end = datetime.now()
     start = end - timedelta(days=days)
-    start_ts = int(start.timestamp())
-    end_ts = int(end.timestamp())
-    headers = {"User-Agent": "Mozilla/5.0"}
-
-    # Nguồn 1: SSI API (Lấy được mã HNX, UPCOM)
+    start_str = start.strftime("%Y-%m-%d")
+    end_str = end.strftime("%Y-%m-%d")
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Referer": "https://s.cafef.vn/"
+    }
+    
     try:
-        url = f"https://iboard-api.ssi.com.vn/statistics/charts/history?resolution=1D&symbol={ticker}&from={start_ts}&to={end_ts}"
-        r = requests.get(url, headers=headers, timeout=10)
-        if r.status_code == 200:
-            data = r.json()
-            if data.get("code") == "SUCCESS" and "data" in data:
-                raw = data["data"]
-                if len(raw) > 0:
-                    df = pd.DataFrame(raw)
-                    df = df.rename(columns={"tradingDate": "Date", "open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"})
-                    df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
-                    for c in ["Open", "High", "Low", "Close", "Volume"]:
-                        df[c] = pd.to_numeric(df[c], errors="coerce")
-                    return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
-    except Exception:
-        pass
-
-    # Nguồn 2: DNSE API
-    try:
-        url = f"https://api.entrade.com.vn/api/marketdata/history?symbol={ticker}&resolution=1D&from={start_ts}&to={end_ts}"
-        r = requests.get(url, headers=headers, timeout=10)
-        if r.status_code == 200:
-            data = r.json()
-            if data.get("s") == "ok" and "t" in data:
-                df = pd.DataFrame({
-                    "Date": pd.to_datetime(data["t"], unit="s") + pd.Timedelta(hours=7),
-                    "Open": data["o"], "High": data["h"], "Low": data["l"],
-                    "Close": data["c"], "Volume": data["v"]
-                })
-                df["Date"] = df["Date"].dt.normalize()
-                return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
-    except Exception:
-        pass
-
-    print(f" [{ticker}] FAIL to pull data.")
-    return pd.DataFrame()
+        url = f"https://s.cafef.vn/Ajax/PageNew/DataHistory/PriceHistory.ashx?Symbol={ticker}&StartDate={start_str}&EndDate={end_str}&PageIndex=1&PageSize=1000"
+        r = requests.get(url, headers=headers, timeout=15)
+        if r.status_code != 200:
+            return pd.DataFrame()
+        
+        data = r.json()
+        if "Data" not in data or len(data["Data"]) == 0:
+            return pd.DataFrame()
+            
+        df = pd.DataFrame(data["Data"])
+        df = df.rename(columns={
+            "Ngay": "Date", 
+            "GiaMoCua": "Open", 
+            "GiaCaoNhat": "High", 
+            "GiaThapNhat": "Low", 
+            "GiaDongCua": "Close", 
+            "KhoiLuongKhopLenh": "Volume"
+        })
+        
+        df = df[["Date", "Open", "High", "Low", "Close", "Volume"]]
+        df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
+        for c in ["Open", "High", "Low", "Close", "Volume"]:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
+            
+        df = df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
+        return df
+    except Exception as e:
+        print(f" [{ticker}] Lỗi API: {str(e)[:100]}")
+        return pd.DataFrame()
 
 # ============ FALLBACK INDICATORS ============
 def _calc_indicators_fallback(df):
@@ -192,6 +188,7 @@ for rule_name, rule in RULES.items():
         try:
             df = get_cached_data(tk)
             if len(df) < 50: 
+                print(f"  [{tk}] FAIL (chỉ có {len(df)} nến)")
                 continue
                 
             sig, r = check_signal(df, rule)
@@ -234,6 +231,7 @@ for rule_name, rule in RULES.items():
             state["last_signals"][key] = sig
             time.sleep(DELAY_BETWEEN_TICKERS)
         except Exception as e:
+            print(f"  [{tk}] ERR: {str(e)[:100]}")
             time.sleep(DELAY_BETWEEN_TICKERS)
 
 state["last_run"] = str(now)
