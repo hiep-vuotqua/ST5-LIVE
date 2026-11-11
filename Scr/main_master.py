@@ -1,5 +1,5 @@
 """
-ST5 MASTER — Lấy dữ liệu qua Yahoo Finance (Chống chặn IP tuyệt đối)
+ST5 MASTER — Đa nguồn (Yahoo, VCI, DNSE) - Fix lỗi KeyError MA50
 """
 import sys
 import os, json, time, csv
@@ -23,18 +23,20 @@ try:
 except ImportError:
     add_v14_indicators = None
 
-# ============ DATA PULLING (YAHOO FINANCE + DNSE FALLBACK) ============
+# ============ DATA PULLING (3 NGUỒN DỰ PHÒNG) ============
 def get_intraday_data(ticker, days=400):
     end = datetime.now()
     start = end - timedelta(days=days)
-    
-    # Nguồn 1: Yahoo Finance (Cực kỳ ổn định, không chặn IP)
-    yf_ticker = f"{ticker}.VN"
+    start_ts = int(start.timestamp())
+    end_ts = int(end.timestamp())
+    headers = {"User-Agent": "Mozilla/5.0"}
+
+    # Nguồn 1: Yahoo Finance
     try:
+        yf_ticker = f"{ticker}.VN"
         df = yf.download(yf_ticker, start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"), interval="1d", progress=False)
         if df is not None and len(df) > 0:
             df = df.reset_index()
-            # Xử lý MultiIndex columns (đặc trưng của yfinance)
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = df.columns.droplevel(1)
             df = df.rename(columns={"Date": "Date", "Open": "Open", "High": "High", "Low": "Low", "Close": "Close", "Volume": "Volume"})
@@ -45,12 +47,26 @@ def get_intraday_data(ticker, days=400):
                 df[c] = pd.to_numeric(df[c], errors="coerce")
             return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
     except Exception:
-        pass # Thử nguồn tiếp theo nếu lỗi
+        pass
 
-    # Nguồn 2: DNSE (Dự phòng)
-    start_ts = int(start.timestamp())
-    end_ts = int(end.timestamp())
-    headers = {"User-Agent": "Mozilla/5.0"}
+    # Nguồn 2: VCI API (Cực tốt cho các mã HNX/UPCoM)
+    try:
+        url = f"https://trading.vietcap.com.vn/api/chart/history?symbol={ticker}&resolution=1D&from={start_ts}&to={end_ts}"
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.status_code == 200:
+            data = r.json()
+            if data.get("s") == "ok" and "t" in data:
+                df = pd.DataFrame({
+                    "Date": pd.to_datetime(data["t"], unit="s") + pd.Timedelta(hours=7),
+                    "Open": data["o"], "High": data["h"], "Low": data["l"],
+                    "Close": data["c"], "Volume": data["v"]
+                })
+                df["Date"] = df["Date"].dt.normalize()
+                return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
+    except Exception:
+        pass
+
+    # Nguồn 3: DNSE API
     try:
         url = f"https://api.entrade.com.vn/api/marketdata/history?symbol={ticker}&resolution=1D&from={start_ts}&to={end_ts}"
         r = requests.get(url, headers=headers, timeout=10)
@@ -137,6 +153,7 @@ def get_cached_data(tk, days=400):
 
 def check_signal(df, p):
     d = df.copy()
+    
     if add_v14_indicators:
         try:
             d = add_v14_indicators(d)
@@ -144,6 +161,12 @@ def check_signal(df, p):
             d = _calc_indicators_fallback(d)
     else:
         d = _calc_indicators_fallback(d)
+        
+    # Đảm bảo MA50, MA200 luôn tồn tại trước khi dropna
+    if "MA50" not in d.columns:
+        d["MA50"] = d["Close"].rolling(50).mean()
+    if "MA200" not in d.columns:
+        d["MA200"] = d["Close"].rolling(200).mean()
         
     d = d.dropna().reset_index(drop=True)
     if len(d) == 0: return None, None
