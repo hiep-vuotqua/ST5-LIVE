@@ -1,10 +1,13 @@
 """
 ST5 MASTER — chạy 7 rule, gộp signal, gửi 1 tin Telegram
 Đã fix: Chống mua trùng mã (dồn tiền vào 1 mã), thêm Heartbeat.
+Đã cập nhật: Tương thích Vnstock v6 (API VPS/SSI), tự động tính indicators dự phòng.
 """
 import os, sys, json, time, csv
 from datetime import datetime, timedelta
 import pytz, requests
+import pandas as pd
+import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -12,9 +15,80 @@ from config_master import (
     RULES, POSITION_SIZE, MAX_POSITIONS, CAPITAL_INITIAL,
     TIMEZONE, STATE_FILE, LOG_FILE, TELEGRAM_TITLE, DELAY_BETWEEN_TICKERS,
 )
-from data_master import get_intraday_data
-from indicators import add_v14_indicators
 
+# Cố gắng import indicators gốc, nếu lỗi sẽ dùng hàm tự tính bên dưới
+try:
+    from indicators import add_v14_indicators
+except ImportError:
+    add_v14_indicators = None
+
+# ============ DATA PULLING (VNSTOCK V6) ============
+from vnstock.api.quote import Quote
+
+def get_intraday_data(ticker, days=400):
+    end = datetime.now()
+    start = end - timedelta(days=days)
+    start_str = start.strftime("%Y-%m-%d")
+    end_str = end.strftime("%Y-%m-%d")
+    
+    # V6: Ưu tiên nguồn VPS và SSI
+    for source in ["VPS", "SSI"]:
+        try:
+            q = Quote(source=source, symbol=ticker)
+            df = q.history(start=start_str, end=end_str, interval="1D")
+            if df is None or len(df) == 0:
+                continue
+            df.columns = [str(c).strip().lower() for c in df.columns]
+            rn = {"time":"Date","date":"Date","open":"Open","high":"High",
+                  "low":"Low","close":"Close","volume":"Volume"}
+            df = df.rename(columns={k:v for k,v in rn.items() if k in df.columns})
+            df = df[["Date","Open","High","Low","Close","Volume"]].copy()
+            df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
+            for c in ["Open","High","Low","Close","Volume"]:
+                df[c] = pd.to_numeric(df[c], errors="coerce")
+            df = df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
+            return df
+        except Exception as e:
+            time.sleep(2)
+            continue
+    print(f" [{ticker}] FAIL to pull data.")
+    return pd.DataFrame()
+
+# ============ FALLBACK INDICATORS ============
+def _calc_indicators_fallback(df):
+    d = df.copy()
+    d['MA50'] = d['Close'].rolling(50).mean()
+    d['MA200'] = d['Close'].rolling(200).mean()
+    d['Vol_MA20'] = d['Volume'].rolling(20).mean()
+    d['VolumeRatio'] = d['Volume'] / d['Vol_MA20']
+    d['ROC10'] = (d['Close'] / d['Close'].shift(10) - 1) * 100
+    
+    exp12 = d['Close'].ewm(span=12, adjust=False).mean()
+    exp26 = d['Close'].ewm(span=26, adjust=False).mean()
+    d['MACD'] = exp12 - exp26
+    d['MACD_Signal'] = d['MACD'].ewm(span=9, adjust=False).mean()
+    d['MACD_Hist'] = d['MACD'] - d['MACD_Signal']
+    
+    high, low, close = d['High'], d['Low'], d['Close']
+    tr1 = high - low
+    tr2 = abs(high - close.shift(1))
+    tr3 = abs(low - close.shift(1))
+    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+    d['ATR14'] = tr.ewm(alpha=1/14, adjust=False).mean()
+    
+    up_move = high - high.shift(1)
+    down_move = low.shift(1) - low
+    plus_dm = np.where((up_move > down_move) & (up_move > 0), up_move, 0.0)
+    minus_dm = np.where((down_move > up_move) & (down_move > 0), down_move, 0.0)
+    
+    d['Plus_DI'] = 100 * (pd.Series(plus_dm, index=d.index).ewm(alpha=1/14, adjust=False).mean() / d['ATR14'])
+    d['Minus_DI'] = 100 * (pd.Series(minus_dm, index=d.index).ewm(alpha=1/14, adjust=False).mean() / d['ATR14'])
+    
+    dx = 100 * abs(d['Plus_DI'] - d['Minus_DI']) / (d['Plus_DI'] + d['Minus_DI'])
+    d['ADX14'] = dx.ewm(alpha=1/14, adjust=False).mean()
+    return d
+
+# ============ SETUP ============
 VN_TZ = pytz.timezone(TIMEZONE)
 now = datetime.now(VN_TZ)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -50,10 +124,17 @@ def get_cached_data(tk, days=400):
 
 def check_signal(df, p):
     d = df.copy()
-    d["MA50"]  = d["Close"].rolling(50).mean()
-    d["MA200"] = d["Close"].rolling(200).mean()
-    d = add_v14_indicators(d).dropna().reset_index(drop=True)
+    if add_v14_indicators:
+        try:
+            d = add_v14_indicators(d)
+        except:
+            d = _calc_indicators_fallback(d)
+    else:
+        d = _calc_indicators_fallback(d)
+        
+    d = d.dropna().reset_index(drop=True)
     if len(d) == 0: return None, None
+    
     r = d.iloc[-1]
     conds = [
         r["VolumeRatio"] > p["volr"],
@@ -61,8 +142,8 @@ def check_signal(df, p):
         r["MACD_Hist"]   > p["macd"],
         r["ADX14"]       > p["adx"],
     ]
-    if p["ma200"]: conds.append(r["Close"] > r["MA200"])
-    if p["ma50"]:  conds.append(r["Close"] > r["MA50"])
+    if p.get("ma200"): conds.append(r["Close"] > r["MA200"])
+    if p.get("ma50"):  conds.append(r["Close"] > r["MA50"])
     return bool(all(conds)), r
 
 def business_days_since(date_str, now_dt):
@@ -93,7 +174,9 @@ for rule_name, rule in RULES.items():
         key = f"{tk}__{rule_name}"
         try:
             df = get_cached_data(tk)
-            if len(df) == 0: continue
+            if len(df) < 50: 
+                continue
+                
             sig, r = check_signal(df, rule)
             if sig is None: continue
             
