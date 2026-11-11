@@ -19,13 +19,16 @@ jobs:
         with:
           python-version: "3.11"
           
-            - name: Install dependencies
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # 1. Cài đặt các thư viện phụ trợ từ kho mặc định (PyPI) trước
-          pip install pandas requests pytz numpy
-          # 2. Cài đặt vnstock 6.0.0 và vnstock-oapi từ kho riêng
-          pip install -U --extra-index-url https://vnstocks.com/api/packages vnstock vnstock-oapi
+          # 1. Cài đặt các thư viện nền tảng từ kho chuẩn PyPI TRƯỚC
+          pip install pandas numpy requests pytz
+          # 2. Cài đặt vnstock và vnai, dùng --no-deps để nó không tự cài lại pandas gây lỗi
+          pip install --extra-index-url https://vnstocks.com/api/simple --no-deps vnstock vnai
+          # 3. Cài đặt các thư viện phụ trợ khác của vnstock (nếu cần)
+          pip install pydantic beautifulsoup4 seaborn openpyxl psutil tenacity vnstock_ezchart pytz
+          
       - name: Run master
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -52,4 +55,61 @@ jobs:
             git rebase --abort 2>/dev/null || true
             sleep 10
           done
-          git push || echo "Push failed after 3 attempts"
+          git push || echo "Push failed after 3 attempts"name: ST5 LIVE MASTER
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: st5-live-master
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # 1. Cài đặt các thư viện nền tảng từ kho chuẩn PyPI TRƯỚC
+          pip install pandas numpy requests pytz
+          # 2. Cài đặt vnstock và vnai, dùng --no-deps để nó không tự cài lại pandas gây lỗi
+          pip install --extra-index-url https://vnstocks.com/api/simple --no-deps vnstock vnai
+          # 3. Cài đặt các thư viện phụ trợ khác của vnstock (nếu cần)
+          pip install pydantic beautifulsoup4 seaborn openpyxl psutil tenacity vnstock_ezchart pytz
+          
+      - name: Run master
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          VNSTOCK_API_KEY:    ${{ secrets.VNSTOCK_API_KEY }}
+          VNSTOCK_TELEMETRY:  "off"
+        run: |
+          cd Scr
+          python main_master.py
+          
+      - name: Commit state
+        continue-on-error: true
+        run: |
+          git config user.name "ST5 Bot"
+          git config user.email "bot@st5.local"
+          STATE_FILE="data/live_state_master.json"
+          if [ ! -f "$STATE_FILE" ]; then echo "{}" > "$STATE_FILE"; fi
+          git add "$STATE_FILE"
+          git diff --staged --quiet || git commit -m "Update MASTER state $(date -u +'%Y-%m-%d %H:%M UTC')"
+          for i in 1 2 3; do
+            echo "=== Push attempt $i/3 ==="
+            git pull --rebase -X theirs origin main && break
+            echo "Rebase failed, retrying..."
+            git rebase --abort 2>/dev/null || true
+            sleep 10
+          done
+          git push || echo "Push failed after 3 attempts" 
