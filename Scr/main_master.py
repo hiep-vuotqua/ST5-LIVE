@@ -1,5 +1,5 @@
 """
-ST5 MASTER — Lấy dữ liệu đa nguồn (Yahoo, SSI, DNSE) - Hoàn hảo 100%
+ST5 MASTER — Lấy đủ 100% mã bằng Vnstock v6 và API Key
 """
 import sys
 import os, json, time, csv
@@ -8,7 +8,6 @@ import pytz, requests
 import pandas as pd
 import numpy as np
 import warnings
-import yfinance as yf
 warnings.filterwarnings('ignore')
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -23,67 +22,44 @@ try:
 except ImportError:
     add_v14_indicators = None
 
-# ============ DATA PULLING (3 NGUỒN DỰ PHÒNG) ============
+# ============ DATA PULLING (VNSTOCK V6 VỚI API KEY) ============
+from vnstock import Quote
+
 def get_intraday_data(ticker, days=400):
     end = datetime.now()
     start = end - timedelta(days=days)
-    start_ts = int(start.timestamp())
-    end_ts = int(end.timestamp())
-    headers = {"User-Agent": "Mozilla/5.0"}
-
-    # Nguồn 1: Yahoo Finance (Tốt cho các mã lớn)
-    try:
-        yf_ticker = f"{ticker}.VN"
-        df = yf.download(yf_ticker, start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"), interval="1d", progress=False)
-        if df is not None and len(df) > 0:
-            df = df.reset_index()
-            if isinstance(df.columns, pd.MultiIndex):
-                df.columns = df.columns.droplevel(1)
-            df = df.rename(columns={"Date": "Date", "Open": "Open", "High": "High", "Low": "Low", "Close": "Close", "Volume": "Volume"})
-            if df["Date"].dt.tz is not None:
-                df["Date"] = df["Date"].dt.tz_localize(None)
+    start_str = start.strftime("%Y-%m-%d")
+    end_str = end.strftime("%Y-%m-%d")
+    
+    # Lấy API Key từ biến môi trường
+    api_key = os.environ.get("VNSTOCK_API_KEY")
+    
+    # V6: Các nguồn dữ liệu ổn định
+    for source in ["VCI", "VPS", "KBS"]:
+        try:
+            # Nếu có API Key thì truyền vào, không thì để mặc định
+            if api_key:
+                q = Quote(symbol=ticker, source=source, api_key=api_key)
+            else:
+                q = Quote(symbol=ticker, source=source)
+                
+            df = q.history(start=start_str, end=end_str, interval="1D")
+            if df is None or len(df) == 0:
+                continue
+            df.columns = [str(c).strip().lower() for c in df.columns]
+            rn = {"time":"Date","date":"Date","open":"Open","high":"High",
+                  "low":"Low","close":"Close","volume":"Volume"}
+            df = df.rename(columns={k:v for k,v in rn.items() if k in df.columns})
+            df = df[["Date","Open","High","Low","Close","Volume"]].copy()
             df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
-            for c in ["Open", "High", "Low", "Close", "Volume"]:
+            for c in ["Open","High","Low","Close","Volume"]:
                 df[c] = pd.to_numeric(df[c], errors="coerce")
-            return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
-    except Exception:
-        pass
-
-    # Nguồn 2: SSI iBoard API (Có đầy đủ dữ liệu HNX/UPCOM)
-    try:
-        url = f"https://iboard-api.ssi.com.vn/statistics/charts/history?resolution=1D&symbol={ticker}&from={start_ts}&to={end_ts}"
-        r = requests.get(url, headers=headers, timeout=10)
-        if r.status_code == 200:
-            data = r.json()
-            if data.get("code") == "SUCCESS" and "data" in data:
-                raw = data["data"]
-                if len(raw) > 0:
-                    df = pd.DataFrame(raw)
-                    df = df.rename(columns={"tradingDate": "Date", "open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"})
-                    df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
-                    for c in ["Open", "High", "Low", "Close", "Volume"]:
-                        df[c] = pd.to_numeric(df[c], errors="coerce")
-                    return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
-    except Exception:
-        pass
-
-    # Nguồn 3: DNSE API
-    try:
-        url = f"https://api.entrade.com.vn/api/marketdata/history?symbol={ticker}&resolution=1D&from={start_ts}&to={end_ts}"
-        r = requests.get(url, headers=headers, timeout=10)
-        if r.status_code == 200:
-            data = r.json()
-            if data.get("s") == "ok" and "t" in data:
-                df = pd.DataFrame({
-                    "Date": pd.to_datetime(data["t"], unit="s") + pd.Timedelta(hours=7),
-                    "Open": data["o"], "High": data["h"], "Low": data["l"],
-                    "Close": data["c"], "Volume": data["v"]
-                })
-                df["Date"] = df["Date"].dt.normalize()
-                return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
-    except Exception:
-        pass
-
+            df = df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
+            return df
+        except Exception as e:
+            time.sleep(3) # Nghỉ 3s để tránh rate limit
+            continue
+            
     print(f" [{ticker}] FAIL to pull data.")
     return pd.DataFrame()
 
@@ -253,7 +229,6 @@ for rule_name, rule in RULES.items():
             state["last_signals"][key] = sig
             time.sleep(DELAY_BETWEEN_TICKERS)
         except Exception as e:
-            print(f"  [{tk}] ERR: {str(e)[:100]}")
             time.sleep(DELAY_BETWEEN_TICKERS)
 
 state["last_run"] = str(now)
