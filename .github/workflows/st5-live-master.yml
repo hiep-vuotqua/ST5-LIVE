@@ -22,15 +22,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # Cài đặt vnstock v6 từ kho chính thức
-          pip install -U --extra-index-url https://vnstocks.com/api/packages vnstock
           pip install pandas requests pytz numpy
           
       - name: Run master
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
-          VNSTOCK_API_KEY:    ${{ secrets.VNSTOCK_API_KEY }}
           VNSTOCK_TELEMETRY:  "off"
         run: |
           cd Scr
