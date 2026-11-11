@@ -1,8 +1,6 @@
-ưname: ST5 LIVE MASTER
+name: ST5 LIVE MASTER
 
 on:
-  # ĐÃ XÓA PHẦN SCHEDULE CỦA GITHUB. 
-  # Chỉ cron-job.org mới được phép kích hoạt bot này.
   workflow_dispatch:
 
 concurrency:
@@ -24,9 +22,9 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # Ép pip chỉ tải từ kho của Vnstock
           pip install -U --index-url https://vnstocks.com/api/packages vnstock
           pip install pandas requests pytz numpy
+          
       - name: Run master
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -36,8 +34,6 @@ jobs:
         run: |
           cd Scr
           python main_master.py
-          # Nếu Boss có chạy thêm bot B1FULL thì bỏ dấu # ở dòng dưới:
-          # python main_b1full.py
           
       - name: Commit state
         continue-on-error: true
