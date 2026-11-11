@@ -1,23 +1,36 @@
 name: ST5 B1FULL
+
 on:
   workflow_dispatch:
+
 jobs:
   run:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
+        
       - uses: actions/setup-python@v5
         with: { python-version: '3.11' }
-      - name: Install
-        run: pip install -r requirements.txt
+        
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas requests pytz numpy yfinance
+          
       - name: Run bot
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python Scr/main_b1full.py
+        run: |
+          cd Scr
+          python main_b1full.py
+          
       - name: Commit state
+        continue-on-error: true
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
