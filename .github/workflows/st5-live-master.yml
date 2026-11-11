@@ -20,12 +20,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # Cài đặt vnstock v6 từ kho chính thức của họ
-          pip install --extra-index-url https://vnstocks.com/api/stocks "vnstock>=6.0.0"
+          # Cài đặt vnstock v6 từ kho chính thức của họ (dùng api/simple)
+          pip install --extra-index-url https://vnstocks.com/api/simple vnstock
           # Cài đặt các thư viện phụ trợ khác
           pip install pandas requests pytz numpy
           
