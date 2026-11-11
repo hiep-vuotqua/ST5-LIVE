@@ -1,5 +1,5 @@
 """
-ST5 MASTER — Yahoo Finance (Nguồn duy nhất không chặn GitHub IP)
+ST5 MASTER — Yahoo Finance (In chi tiết nến & chỉ số từng mã)
 """
 import sys
 import os, json, time, csv
@@ -83,7 +83,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 state_path = os.path.join(BASE_DIR, STATE_FILE)
 
 print(f"===== {TELEGRAM_TITLE} — {now.strftime('%Y-%m-%d %H:%M:%S %Z')} =====")
-print("Nguồn dữ liệu: Yahoo Finance (Các mã nhỏ HNX/UPCOM sẽ bị bỏ qua)")
+print("Nguồn dữ liệu: Yahoo Finance")
 
 if now.weekday() >= 5:
     print("Cuối tuần — bỏ qua")
@@ -100,8 +100,10 @@ if os.path.exists(state_path):
         print(f"[state load fail] {e}")
 
 ticker_cache = {}
-ok_count = 0
-fail_count = 0
+
+# Tập hợp để đếm mã thành công / thất bại
+success_tickers = set()
+fail_tickers = set()
 
 def get_cached_data(tk, days=400):
     if tk in ticker_cache:
@@ -164,12 +166,21 @@ for rule_name, rule in RULES.items():
         try:
             df = get_cached_data(tk)
             if len(df) < 50: 
-                fail_count += 1
+                fail_tickers.add(tk)
+                print(f"  [{tk}] Bỏ qua (chỉ có {len(df)} nến)")
                 continue
             
-            ok_count += 1
+            success_tickers.add(tk)
+            
             sig, r = check_signal(df, rule)
-            if sig is None: continue
+            if sig is None: 
+                print(f"  [{tk}] Lỗi tính toán (không đủ dữ liệu chỉ báo)")
+                continue
+                
+            # In chi tiết thông số kỹ thuật
+            last_date = df['Date'].iloc[-1].strftime('%d/%m/%Y')
+            status_icon = "🟢 MUA" if sig else "⚪ Không"
+            print(f"  [{tk}] {status_icon} | {len(df)} nến (đến {last_date}) | VolR={r['VolumeRatio']:.2f} ADX={r['ADX14']:.1f} ROC={r['ROC10']:.1f} MACD_H={r['MACD_Hist']:.2f}")
             
             prev = state["last_signals"].get(key, False)
             pos = state["positions"].get(key)
@@ -190,7 +201,6 @@ for rule_name, rule in RULES.items():
                         "rule": rule_name, "action": "BUY",
                         "volr": r["VolumeRatio"], "adx": r["ADX14"], "roc": r["ROC10"],
                     })
-                    print(f"  [{tk}] BUY {rule_name} volR={r['VolumeRatio']:.2f} ADX={r['ADX14']:.1f}")
             elif (not sig) and prev and pos:
                 hold = business_days_since(pos["entry_date"], now)
                 if hold >= rule["mh"]:
@@ -199,15 +209,18 @@ for rule_name, rule in RULES.items():
                     signal_map.setdefault(tk, []).append({
                         "rule": rule_name, "action": "SELL", "ret": ret - 1, "hold": hold,
                     })
-                    print(f"  [{tk}] SELL hold={hold} ret={(ret-1)*100:+.2f}%")
                     del state["positions"][key]
             state["last_signals"][key] = sig
             time.sleep(DELAY_BETWEEN_TICKERS)
-        except Exception:
-            fail_count += 1
+        except Exception as e:
+            fail_tickers.add(tk)
             time.sleep(DELAY_BETWEEN_TICKERS)
 
-print(f"\n===== TÓM TẮT: Lấy được {ok_count} mã, Bỏ qua {fail_count} mã =====")
+print(f"\n===== TÓM TẮT: Lấy được {len(success_tickers)} mã, Bỏ qua {len(fail_tickers)} mã =====")
+if success_tickers:
+    print(f"Mã lấy được: {', '.join(sorted(list(success_tickers)))}")
+if fail_tickers:
+    print(f"Mã bỏ qua: {', '.join(sorted(list(fail_tickers)))}")
 
 state["last_run"] = str(now)
 buys = {tk: sigs for tk, sigs in signal_map.items() if any(s["action"]=="BUY" for s in sigs)}
@@ -234,10 +247,9 @@ if buys or sells:
             for s in sell_sigs:
                 lines.append(f"  • {tk} — {s['rule']} (hold {s['hold']}d, {s['ret']*100:+.2f}%)")
     lines.append(f"\n💰 Cash: {state['cash']/1e9:.4f} tỷ | Pos: {len(state['positions'])}")
-    lines.append(f"📊 Đã quét: {ok_count} mã | Bỏ qua: {fail_count} mã")
     send_telegram("\n".join(lines))
 else:
-    msg = f"🤖 <b>{TELEGRAM_TITLE}</b> — {now.strftime('%H:%M')}\nTrạng thái: Không có tín hiệu mới.\n💰 Cash: {state['cash']/1e9:.4f} tỷ | Đang giữ: {len(state['positions'])} mã\n📊 Đã quét: {ok_count} mã | Bỏ qua: {fail_count} mã"
+    msg = f"🤖 <b>{TELEGRAM_TITLE}</b> — {now.strftime('%H:%M')}\nTrạng thái: Không có tín hiệu mới.\n💰 Cash: {state['cash']/1e9:.4f} tỷ | Đang giữ: {len(state['positions'])} mã"
     send_telegram(msg)
     print("\nKhông có tín hiệu mới — Đã gửi tin nhắn Heartbeat.")
 
