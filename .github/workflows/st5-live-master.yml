@@ -1,7 +1,18 @@
 name: ST5 LIVE MASTER
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Nút bấm chạy thủ công
+  schedule:
+    # --- PHIÊN SÁNG (Giờ VN) ---
+    - cron: '25 2 * * 1-5'  # 09:25 VN (02:25 UTC)
+    - cron: '30 3 * * 1-5'  # 10:30 VN (03:30 UTC)
+    - cron: '15 4 * * 1-5'  # 11:15 VN (04:15 UTC)
+    
+    # --- PHIÊN CHIỀU (Giờ VN) ---
+    - cron: '25 6 * * 1-5'  # 13:25 VN (06:25 UTC)
+    - cron: '55 6 * * 1-5'  # 14:00 VN (06:55 UTC - bù trừ delay GitHub)
+    - cron: '15 7 * * 1-5'  # 14:20 VN (07:15 UTC - bù trừ delay GitHub)
+    - cron: '35 7 * * 1-5'  # 14:40 VN (07:35 UTC)
 
 concurrency:
   group: st5-live-master
