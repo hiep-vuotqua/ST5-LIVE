@@ -1,5 +1,5 @@
 """
-ST5 MASTER — Yahoo Finance (In chi tiết nến & chỉ số từng mã)
+ST5 MASTER — Yahoo Finance (Đã sửa công thức ADX chuẩn Wilder)
 """
 import sys
 import os, json, time, csv
@@ -14,16 +14,10 @@ warnings.filterwarnings('ignore')
 logging.getLogger('yfinance').setLevel(logging.CRITICAL)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
 from config_master import (
     RULES, POSITION_SIZE, MAX_POSITIONS, CAPITAL_INITIAL,
     TIMEZONE, STATE_FILE, LOG_FILE, TELEGRAM_TITLE, DELAY_BETWEEN_TICKERS,
 )
-
-try:
-    from indicators import add_v14_indicators
-except ImportError:
-    add_v14_indicators = None
 
 # ============ DATA PULLING (YAHOO FINANCE) ============
 def get_intraday_data(ticker, days=400):
@@ -47,7 +41,7 @@ def get_intraday_data(ticker, days=400):
     except Exception:
         return pd.DataFrame()
 
-# ============ FALLBACK INDICATORS ============
+# ============ TÍNH CHỈ BÁO (CHUẨN WILDER'S SMOOTHING) ============
 def _calc_indicators_fallback(df):
     d = df.copy()
     d['MA50'] = d['Close'].rolling(50).mean()
@@ -55,25 +49,31 @@ def _calc_indicators_fallback(df):
     d['Vol_MA20'] = d['Volume'].rolling(20).mean()
     d['VolumeRatio'] = d['Volume'] / d['Vol_MA20']
     d['ROC10'] = (d['Close'] / d['Close'].shift(10) - 1) * 100
+    
     exp12 = d['Close'].ewm(span=12, adjust=False).mean()
     exp26 = d['Close'].ewm(span=26, adjust=False).mean()
     d['MACD'] = exp12 - exp26
     d['MACD_Signal'] = d['MACD'].ewm(span=9, adjust=False).mean()
     d['MACD_Hist'] = d['MACD'] - d['MACD_Signal']
+    
     high, low, close = d['High'], d['Low'], d['Close']
-    tr1 = high - low
-    tr2 = abs(high - close.shift(1))
-    tr3 = abs(low - close.shift(1))
-    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-    d['ATR14'] = tr.ewm(alpha=1/14, adjust=False).mean()
+    tr = pd.concat([high-low, (high-close.shift()).abs(), (low-close.shift()).abs()], axis=1).max(axis=1)
+    
     up_move = high - high.shift(1)
     down_move = low.shift(1) - low
     plus_dm = np.where((up_move > down_move) & (up_move > 0), up_move, 0.0)
     minus_dm = np.where((down_move > up_move) & (down_move > 0), down_move, 0.0)
-    d['Plus_DI'] = 100 * (pd.Series(plus_dm, index=d.index).ewm(alpha=1/14, adjust=False).mean() / d['ATR14'])
-    d['Minus_DI'] = 100 * (pd.Series(minus_dm, index=d.index).ewm(alpha=1/14, adjust=False).mean() / d['ATR14'])
+    
+    # Wilder's Smoothing chuẩn (alpha = 1/14)
+    def wilder_smooth(series):
+        return series.ewm(alpha=1/14, adjust=False).mean()
+        
+    d['ATR14'] = wilder_smooth(tr)
+    d['Plus_DI'] = 100 * (pd.Series(plus_dm, index=d.index).pipe(wilder_smooth) / d['ATR14'])
+    d['Minus_DI'] = 100 * (pd.Series(minus_dm, index=d.index).pipe(wilder_smooth) / d['ATR14'])
     dx = 100 * abs(d['Plus_DI'] - d['Minus_DI']) / (d['Plus_DI'] + d['Minus_DI'])
-    d['ADX14'] = dx.ewm(alpha=1/14, adjust=False).mean()
+    d['ADX14'] = dx.pipe(wilder_smooth)
+    
     return d
 
 # ============ SETUP ============
@@ -100,8 +100,6 @@ if os.path.exists(state_path):
         print(f"[state load fail] {e}")
 
 ticker_cache = {}
-
-# Tập hợp để đếm mã thành công / thất bại
 success_tickers = set()
 fail_tickers = set()
 
@@ -114,19 +112,11 @@ def get_cached_data(tk, days=400):
 
 def check_signal(df, p):
     d = df.copy()
-    if add_v14_indicators:
-        try:
-            d = add_v14_indicators(d)
-        except:
-            d = _calc_indicators_fallback(d)
-    else:
-        d = _calc_indicators_fallback(d)
-    if "MA50" not in d.columns:
-        d["MA50"] = d["Close"].rolling(50).mean()
-    if "MA200" not in d.columns:
-        d["MA200"] = d["Close"].rolling(200).mean()
+    d = _calc_indicators_fallback(d)
+    
     d = d.dropna().reset_index(drop=True)
     if len(d) == 0: return None, None
+    
     r = d.iloc[-1]
     conds = [
         r["VolumeRatio"] > p["volr"],
@@ -174,13 +164,12 @@ for rule_name, rule in RULES.items():
             
             sig, r = check_signal(df, rule)
             if sig is None: 
-                print(f"  [{tk}] Lỗi tính toán (không đủ dữ liệu chỉ báo)")
+                print(f"  [{tk}] Lỗi tính toán")
                 continue
                 
-            # In chi tiết thông số kỹ thuật
             last_date = df['Date'].iloc[-1].strftime('%d/%m/%Y')
             status_icon = "🟢 MUA" if sig else "⚪ Không"
-            print(f"  [{tk}] {status_icon} | {len(df)} nến (đến {last_date}) | VolR={r['VolumeRatio']:.2f} ADX={r['ADX14']:.1f} ROC={r['ROC10']:.1f} MACD_H={r['MACD_Hist']:.2f}")
+            print(f"  [{tk}] {status_icon} | {len(df)} nến | VolR={r['VolumeRatio']:.2f} ADX={r['ADX14']:.1f} ROC={r['ROC10']:.1f} MACD_H={r['MACD_Hist']:.2f}")
             
             prev = state["last_signals"].get(key, False)
             pos = state["positions"].get(key)
@@ -217,10 +206,6 @@ for rule_name, rule in RULES.items():
             time.sleep(DELAY_BETWEEN_TICKERS)
 
 print(f"\n===== TÓM TẮT: Lấy được {len(success_tickers)} mã, Bỏ qua {len(fail_tickers)} mã =====")
-if success_tickers:
-    print(f"Mã lấy được: {', '.join(sorted(list(success_tickers)))}")
-if fail_tickers:
-    print(f"Mã bỏ qua: {', '.join(sorted(list(fail_tickers)))}")
 
 state["last_run"] = str(now)
 buys = {tk: sigs for tk, sigs in signal_map.items() if any(s["action"]=="BUY" for s in sigs)}
