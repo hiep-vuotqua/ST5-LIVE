@@ -1,6 +1,6 @@
 """
 Logic bot ST5-B1FULL — Merge-12 + Trail 10%.
-Nguồn dữ liệu: Yahoo Finance (Không bao giờ bị chặn IP)
+Đã sửa: Công thức ADX chuẩn Wilder, không phụ thuộc indicators.py ngoài.
 """
 import os, sys, json, time, requests
 from datetime import datetime, timedelta
@@ -16,32 +16,25 @@ logging.getLogger('yfinance').setLevel(logging.CRITICAL)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from config_b1full import B1FULL_RULES, CAPITAL_ALLOC, TRAIL_PCT, TELEGRAM_PREFIX
 
-# ---------- INDICATORS ----------
-try:
-    from indicators import add_v14_indicators as _base_ind
-except ImportError:
-    _base_ind = None
-
+# ---------- INDICATORS (CHUẨN WILDER'S SMOOTHING) ----------
 def _calc_adx(df, period=14):
     h, l, c = df["High"], df["Low"], df["Close"]
     up = h.diff(); dn = -l.diff()
     pdm = np.where((up > dn) & (up > 0), up, 0.0)
     mdm = np.where((dn > up) & (dn > 0), dn, 0.0)
     tr = pd.concat([h-l, (h-c.shift()).abs(), (l-c.shift()).abs()], axis=1).max(axis=1)
-    atr = tr.ewm(alpha=1/period, adjust=False).mean()
-    pdi = pd.Series(pdm, index=df.index).ewm(alpha=1/period, adjust=False).mean() / atr * 100
-    mdi = pd.Series(mdm, index=df.index).ewm(alpha=1/period, adjust=False).mean() / atr * 100
+    
+    def wilder_smooth(series):
+        return series.ewm(alpha=1/period, adjust=False).mean()
+        
+    atr = wilder_smooth(tr)
+    pdi = pd.Series(pdm, index=df.index).pipe(wilder_smooth) / atr * 100
+    mdi = pd.Series(mdm, index=df.index).pipe(wilder_smooth) / atr * 100
     dx = (pdi - mdi).abs() / (pdi + mdi).replace(0, np.nan) * 100
-    return dx.ewm(alpha=1/period, adjust=False).mean()
+    return dx.pipe(wilder_smooth)
 
 def prepare(df):
     d = df.copy()
-    if _base_ind is not None:
-        try:
-            d = _base_ind(d)
-        except Exception as e:
-            pass
-    
     if "VolR" not in d.columns:
         if "VolumeRatio" in d.columns:
             d["VolR"] = d["VolumeRatio"]
@@ -273,4 +266,4 @@ def main():
     send_telegram(msg)
 
 if __name__ == "__main__":
-    main() 
+    main()main_master 
