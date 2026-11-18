@@ -1,5 +1,5 @@
 """
-ST5 CORE-SCAN — Dung Yahoo Finance va Wilder ADX
+ST5 HIEP-SCAN - Yahoo Finance (Tuong thich hoan toan, khong dung Vnstock)
 """
 import os, sys, json, time, csv
 from datetime import datetime, timedelta
@@ -15,7 +15,8 @@ logging.getLogger('yfinance').setLevel(logging.CRITICAL)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from config_core_scan import (
+# Đổi import sang file config_hiep_scan
+from config_hiep_scan import (
     DCM_BASKET, GVR_BASKET, RULE_PARAMS,
     TIER_A_VOLR, TIER_B_VOLR, SIZE_A, SIZE_B, SIZE_C,
     CAPITAL_INITIAL, MAX_POSITIONS, DD_ALERT_THRESHOLD,
@@ -30,14 +31,11 @@ def get_intraday_data(ticker, days=400):
     yf_ticker = f"{ticker}.VN"
     try:
         df = yf.download(yf_ticker, start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"), interval="1d", progress=False)
-        if df is None or len(df) == 0:
-            return pd.DataFrame()
+        if df is None or len(df) == 0: return pd.DataFrame()
         df = df.reset_index()
-        if isinstance(df.columns, pd.MultiIndex):
-            df.columns = df.columns.droplevel(1)
+        if isinstance(df.columns, pd.MultiIndex): df.columns = df.columns.droplevel(1)
         df = df.rename(columns={"Date": "Date", "Open": "Open", "High": "High", "Low": "Low", "Close": "Close", "Volume": "Volume"})
-        if df["Date"].dt.tz is not None:
-            df["Date"] = df["Date"].dt.tz_localize(None)
+        if df["Date"].dt.tz is not None: df["Date"] = df["Date"].dt.tz_localize(None)
         df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
         for c in ["Open", "High", "Low", "Close", "Volume"]:
             df[c] = pd.to_numeric(df[c], errors="coerce")
@@ -98,13 +96,11 @@ log_path = os.path.join(BASE_DIR, LOG_FILE)
 print(f"===== {TELEGRAM_TITLE} - {now.strftime('%Y-%m-%d %H:%M:%S %Z')} =====")
 
 if now.weekday() >= 5:
-    print("Cuoi tuan - bo qua")
-    sys.exit(0)
+    print("Cuoi tuan - bo qua"); sys.exit(0)
 
 current_time = now.hour * 100 + now.minute
 if current_time < 900 or current_time > 1500:
-    print(f"[{now.strftime('%H:%M')}] Ngoai gio giao dich. Bo qua.")
-    sys.exit(0)
+    print(f"[{now.strftime('%H:%M')}] Ngoai gio giao dich. Bo qua."); sys.exit(0)
 
 # ---------- LOAD STATE ----------
 state = {"positions": {}, "cash": CAPITAL_INITIAL, "peak_equity": CAPITAL_INITIAL, "last_signals": {}, "last_run": None}
@@ -130,10 +126,7 @@ def send_telegram(msg):
 def check_signal(df, p):
     r = df.iloc[-1]
     conds = [
-        r["VolR"] > p["volr"],
-        r["ROC"] > p["roc"],
-        r["MACD"] > p["macd"],
-        r["ADX"] > p["adx"],
+        r["VolR"] > p["volr"], r["ROC"] > p["roc"], r["MACD"] > p["macd"], r["ADX"] > p["adx"]
     ]
     if p["ma200"]: conds.append(r["Close"] > r["MA200"])
     if p["ma50"]:  conds.append(r["Close"] > r["MA50"])
@@ -239,4 +232,4 @@ else:
     send_telegram(msg)
     print("Khong co tin hieu moi.")
 
-print(f"===== DONE - DCM:{len(buy_dcm)} GVR:{len(buy_gvr)} =====") 
+print(f"===== DONE - DCM:{len(buy_dcm)} GVR:{len(buy_gvr)} =====")
