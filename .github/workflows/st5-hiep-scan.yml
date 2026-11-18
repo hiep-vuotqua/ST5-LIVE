@@ -1,4 +1,4 @@
-name: ST5 CORE-SCAN
+name: ST5 HIEP-SCAN
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ on:
     - cron: '45 7 * * 1-5'  # 14:45 VN
 
 concurrency:
-  group: st5-core-scan
+  group: st5-hiep-scan
   cancel-in-progress: false
 
 jobs:
@@ -25,6 +25,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+      
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -40,19 +41,21 @@ jobs:
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           cd Scr
-          python main_core_scan.py
+          python main_hiep_scan.py
           
       - name: Commit state
         continue-on-error: true
         run: |
           git config user.name "ST5 Bot"
           git config user.email "bot@st5.local"
-          STATE_FILE="Scr/live_state_core_scan.json"
+          STATE_FILE="Scr/live_state_hiep_scan.json"
           if [ ! -f "$STATE_FILE" ]; then echo "{}" > "$STATE_FILE"; fi
           git add "$STATE_FILE"
-          git diff --staged --quiet || git commit -m "Update CORE-SCAN state $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git diff --staged --quiet || git commit -m "Update HIEP-SCAN state $(date -u +'%Y-%m-%d %H:%M UTC')"
           for i in 1 2 3; do
+            echo "=== Push attempt $i/3 ==="
             git pull --rebase -X theirs origin main && break
+            echo "Rebase failed, retrying..."
             git rebase --abort 2>/dev/null || true
             sleep 10
           done
