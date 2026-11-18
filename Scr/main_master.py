@@ -246,7 +246,7 @@ else:
     send_telegram(msg)
     print("\nKhông có tín hiệu mới — Đã gửi tin nhắn Heartbeat.")
 
-print(f"\n===== DONE — {len(buys)} BUY signals, {len(sells)} SELL signals =====")"""
+print(f"\n===== DONE — {len(buys)} BUY signals, {len(sells)} SELL signals =====")2
 ST5 MASTER — Yahoo Finance (Đã sửa công thức ADX chuẩn Wilder + Chặn giờ)
 """
 import sys
