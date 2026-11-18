@@ -266,4 +266,4 @@ def main():
     send_telegram(msg)
 
 if __name__ == "__main__":
-    main()main_master 
+    main()
