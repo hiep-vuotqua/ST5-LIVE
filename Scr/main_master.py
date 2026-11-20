@@ -77,6 +77,8 @@ def _calc_indicators_fallback(df):
 
 # ============ SETUP ============
 VN_TZ = pytz.timezone(TIMEZONE)
+# ============ SETUP ============
+VN_TZ = pytz.timezone(TIMEZONE)
 now = datetime.now(VN_TZ)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 state_path = os.path.join(BASE_DIR, STATE_FILE)
@@ -84,14 +86,19 @@ state_path = os.path.join(BASE_DIR, STATE_FILE)
 print(f"===== {TELEGRAM_TITLE} - {now.strftime('%Y-%m-%d %H:%M:%S %Z')} =====")
 print("Nguon du lieu: Yahoo Finance")
 
-# 1. CHẶN CHẠY CUỐI TUẦN
-if now.weekday() >= 5:
+# Kiểm tra xem có phải Boss bấm chạy thủ công không?
+is_manual = os.environ.get("IS_MANUAL", "false").lower() == "true"
+if is_manual:
+    print("[CHE DO THU CONG] Bo qua kiem tra gio giao dich.")
+
+# 1. CHẶN CHẠY CUỐI TUẦN (Trừ khi chạy thủ công)
+if now.weekday() >= 5 and not is_manual:
     print("Cuoi tuan - bo qua")
     sys.exit(0)
 
-# 2. CHẶN CHẠY NGOÀI GIỜ GIAO DỊCH (Trước 9h sáng hoặc sau 15h chiều)
+# 2. CHẶN CHẠY NGOÀI GIỜ GIAO DỊCH (Trừ khi chạy thủ công)
 current_time = now.hour * 100 + now.minute
-if current_time < 900 or current_time > 1500:
+if (current_time < 900 or current_time > 1500) and not is_manual:
     print(f"[{now.strftime('%H:%M')}] Ngoai gio giao dich (09:00 - 15:00). Bo qua.")
     sys.exit(0)
 
