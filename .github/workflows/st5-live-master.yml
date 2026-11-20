@@ -1,4 +1,4 @@
-name: ST5 LIVE MASTER
+2name: ST5 LIVE MASTER
 
 on:
   workflow_dispatch: # Nút bấm chạy thủ công
@@ -39,6 +39,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          IS_MANUAL: ${{ github.event_name == 'workflow_dispatch' }} # <--- THÊM DÒNG NÀY
         run: |
           cd Scr
           python main_master.py
