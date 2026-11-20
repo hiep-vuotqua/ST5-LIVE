@@ -1,4 +1,4 @@
-2name: ST5 LIVE MASTER
+name: ST5 LIVE MASTER
 
 on:
   workflow_dispatch: # Nút bấm chạy thủ công
