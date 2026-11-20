@@ -1,6 +1,4 @@
-"""
-ST5 MASTER - Yahoo Finance (Wilder ADX + Time Gatekeeper)
-"""
+# ST5 MASTER - VNDirect API (Chuan TradingView + Time Gatekeeper)
 import sys
 import os, json, time, csv
 from datetime import datetime, timedelta
@@ -8,10 +6,8 @@ import pytz, requests
 import pandas as pd
 import numpy as np
 import warnings
-import logging
-import yfinance as yf
+
 warnings.filterwarnings('ignore')
-logging.getLogger('yfinance').setLevel(logging.CRITICAL)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from config_master import (
@@ -19,27 +15,36 @@ from config_master import (
     TIMEZONE, STATE_FILE, LOG_FILE, TELEGRAM_TITLE, DELAY_BETWEEN_TICKERS,
 )
 
-# ============ DATA PULLING (YAHOO FINANCE) ============
+# ============ DATA PULLING (VNDIRECT) ============
 def get_intraday_data(ticker, days=400):
     end = datetime.now()
     start = end - timedelta(days=days)
-    yf_ticker = f"{ticker}.VN"
+    start_ts = int(start.timestamp())
+    end_ts = int(end.timestamp())
+    
+    url = f"https://dchart-api.vndirect.com.vn/dchart/history?resolution=D&symbol={ticker}&from={start_ts}&to={end_ts}"
+    headers = {"User-Agent": "Mozilla/5.0"}
+    
     try:
-        df = yf.download(yf_ticker, start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"), interval="1d", progress=False)
-        if df is None or len(df) == 0:
-            return pd.DataFrame()
-        df = df.reset_index()
-        if isinstance(df.columns, pd.MultiIndex):
-            df.columns = df.columns.droplevel(1)
-        df = df.rename(columns={"Date": "Date", "Open": "Open", "High": "High", "Low": "Low", "Close": "Close", "Volume": "Volume"})
-        if df["Date"].dt.tz is not None:
-            df["Date"] = df["Date"].dt.tz_localize(None)
-        df["Date"] = pd.to_datetime(df["Date"]).dt.normalize()
-        for c in ["Open", "High", "Low", "Close", "Volume"]:
-            df[c] = pd.to_numeric(df[c], errors="coerce")
-        return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
+        r = requests.get(url, headers=headers, timeout=15)
+        if r.status_code == 200:
+            data = r.json()
+            if data.get("s") == "ok" and "t" in data:
+                df = pd.DataFrame({
+                    "Date": pd.to_datetime(data["t"], unit="s") + pd.Timedelta(hours=7),
+                    "Open": data["o"],
+                    "High": data["h"],
+                    "Low": data["l"],
+                    "Close": data["c"],
+                    "Volume": data["v"]
+                })
+                df["Date"] = df["Date"].dt.normalize()
+                return df.dropna().drop_duplicates(subset=["Date"]).sort_values("Date").reset_index(drop=True)
     except Exception:
-        return pd.DataFrame()
+        pass
+    
+    print(f" [{ticker}] FAIL to pull data.")
+    return pd.DataFrame()
 
 # ============ TÍNH CHỈ BÁO (CHUẨN WILDER'S SMOOTHING) ============
 def _calc_indicators_fallback(df):
@@ -77,26 +82,24 @@ def _calc_indicators_fallback(df):
 
 # ============ SETUP ============
 VN_TZ = pytz.timezone(TIMEZONE)
-# ============ SETUP ============
-VN_TZ = pytz.timezone(TIMEZONE)
 now = datetime.now(VN_TZ)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 state_path = os.path.join(BASE_DIR, STATE_FILE)
 
 print(f"===== {TELEGRAM_TITLE} - {now.strftime('%Y-%m-%d %H:%M:%S %Z')} =====")
-print("Nguon du lieu: Yahoo Finance")
+print("Nguon du lieu: VNDirect")
 
 # Kiểm tra xem có phải Boss bấm chạy thủ công không?
 is_manual = os.environ.get("IS_MANUAL", "false").lower() == "true"
 if is_manual:
     print("[CHE DO THU CONG] Bo qua kiem tra gio giao dich.")
 
-# 1. CHẶN CHẠY CUỐI TUẦN (Trừ khi chạy thủ công)
+# 1. CHẶN CHẠY CUỐI TUẦN
 if now.weekday() >= 5 and not is_manual:
     print("Cuoi tuan - bo qua")
     sys.exit(0)
 
-# 2. CHẶN CHẠY NGOÀI GIỜ GIAO DỊCH (Trừ khi chạy thủ công)
+# 2. CHẶN CHẠY NGOÀI GIỜ GIAO DỊCH
 current_time = now.hour * 100 + now.minute
 if (current_time < 900 or current_time > 1500) and not is_manual:
     print(f"[{now.strftime('%H:%M')}] Ngoai gio giao dich (09:00 - 15:00). Bo qua.")
