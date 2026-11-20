@@ -41,7 +41,7 @@
     "ABB__CORE-28": false,
     "APS__CORE-28": false,
     "SGP__CORE-28": false,
-    "TCO__CORE-28": true,
+    "TCO__CORE-28": false,
     "IDJ__CORE-28": false,
     "VDS__CORE-28": false,
     "HCM__CORE-28": false,
@@ -122,5 +122,5 @@
     "OIL__CORE-SCAN-GVR": false
   },
   "cash": 500000000,
-  "last_run": "2026-11-19 11:30:35.527862+07:00"
+  "last_run": "2026-11-20 09:45:33.525483+07:00"
 }
