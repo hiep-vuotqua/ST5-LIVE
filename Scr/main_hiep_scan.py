@@ -245,7 +245,7 @@ else:
     send_telegram(msg)
     print("Khong co tin hieu moi.")
 
-print(f"===== DONE - DCM:{len(buy_dcm)} GVR:{len(buy_gvr)} =====")"""
+print(f"===== DONE - DCM:{len(buy_dcm)} GVR:{len(buy_gvr)} =====")
 ST5 HIEP-SCAN - VNDirect API (Chuan TradingView, ho tro IS_MANUAL)
 """
 import os, sys, json, time, csv
