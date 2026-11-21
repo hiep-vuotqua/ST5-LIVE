@@ -1,21 +1,6 @@
 """
-ST5 MASTER v2 — sau khi lọc thanh khoản
-Cập nhật: 2026-10-15
-Filter: loại 25 mã có GTGD 200 phiên < ngưỡng an toàn (xem FILTER_NOTE)
-Cron: 9:45 / 10:30 / 11:15 / 13:30 / 14:00 / 14:20 VN
+ST5 MASTER v3 — Tinh gọn rule + Stop Loss + Giới hạn tối đa số phiên giữ
 """
-
-# ============================================================
-# FILTER NOTE (đọc trước khi sửa)
-# Ngày filter: 2026-10-15
-# Ngưỡng: GTGD trung bình 200 phiên gần nhất
-# Lý do: mã GTGD thấp → mua 100tr khó khớp 1 phiên, bán càng khó
-#         (khớp muộn → lỡ MH exit → thua lỗ không kiểm soát)
-# Refresh: nên chạy lại filter mỗi 6 tháng, so sánh list bỏ
-# 25 mã đã loại: CIG CTP FDC HLD HVT ICG KDM LGL MCG MFS MVC
-#                NAG PMG PSB SAS SAV SCI SEA SLS TA9 TDH TMT VFG
-#                VLG VNA
-# ============================================================
 
 RULES = {
     "CORE-28": dict(
@@ -43,21 +28,20 @@ RULES = {
         tickers=["CTS","DGW","HSL","CII","CEO","MCH","DPM","VPB","FRT","BSR","VDS"],
         volr=1.5, roc=4.0, macd=0.0, adx=19.0, ma200=True, ma50=True, mh=3,
     ),
-    "CORE-SCAN-GVR": dict(
-        tickers=["FRT","CEO","DGW","VPB","VIX","LPB","VCG","DPR","GVR","BFC","OIL"],
-        volr=1.2, roc=4.0, macd=0.0, adx=27.0, ma200=False, ma50=False, mh=3,
-    ),
+    # Đã bỏ CORE-SCAN-GVR vì avg ret âm (-2.17%) và giữ trung bình gần 48 phiên
 }
 
 POSITION_SIZE = 100_000_000   # 100tr/lệnh
 MAX_POSITIONS = 10
 CAPITAL_INITIAL = 1_000_000_000
 
+# Chốt chặn rủi ro mới cho v3
+STOP_LOSS_PCT = 8.0           # Cắt lỗ nếu giá đóng cửa giảm >= 8% so với giá vào
+HARD_MAX_HOLD_DAYS = 20       # Chốt thoát cứng nếu giữ quá 20 phiên giao dịch
+
 TIMEZONE = "Asia/Ho_Chi_Minh"
 FEE_PER_ROUND = 0.4
-STATE_FILE = "../data/live_state_master.json"
-LOG_FILE = "../data/log_master.csv"
-TELEGRAM_TITLE = "ST5 MASTER"
-
-# BẮT BUỘC PHẢI CÓ DÒNG NÀY Ở ĐÂY
+STATE_FILE = "../data/live_state_master_v3.json"
+LOG_FILE = "../data/log_master_v3.csv"
+TELEGRAM_TITLE = "ST5 MASTER v3"
 DELAY_BETWEEN_TICKERS = 2
